@@ -199,15 +199,18 @@ docker_traefik_log_level: DEBUG
 
 ## Backend network model
 
-The role creates the networks listed in `docker_traefik_backend_networks`
-before creating the Traefik container. Each backend should use its own network.
-Traefik is attached to all declared backend networks, while each backend
-container should be attached only to its own network.
+The role creates the networks listed in
+`docker_traefik_backend_ingress_networks` as `internal: true` before creating
+the Traefik container. Each backend should use its own ingress network.
+Traefik is attached to all declared backend ingress networks, while each
+backend container should be attached only to its own ingress and dedicated
+egress network. Backend service roles must not create or remove their ingress
+network; the Traefik role owns it.
 
 ```yaml
-docker_traefik_backend_networks:
-  - agentgateway-a
-  - agentgateway-b
+docker_traefik_backend_ingress_networks:
+  - agentgateway-a-ingress-net
+  - agentgateway-b-ingress-net
 ```
 
 A backend container connected to more than one network must explicitly select
@@ -216,11 +219,13 @@ its Traefik network:
 ```yaml
 labels:
   traefik.enable: "true"
-  traefik.docker.network: agentgateway-a
+  traefik.docker.network: agentgateway-a-ingress-net
 ```
 
-This prevents Traefik from selecting the wrong network when a container has
-multiple network attachments.
+The backend role owns and creates its dedicated egress network, but it only
+attaches to the ingress network declared by the Traefik role. This prevents
+Traefik from selecting the wrong network when a container has multiple network
+attachments.
 
 ## Dashboard labels
 

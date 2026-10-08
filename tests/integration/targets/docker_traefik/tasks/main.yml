@@ -40,7 +40,7 @@
     docker_traefik_dynamic_config_source_path: "{{ test_dynamic_source_path }}"
     docker_traefik_dynamic_config_basepath: "{{ test_dynamic_target_path }}"
     docker_traefik_dynamic_config_cleanup: true
-    docker_traefik_backend_networks:
+    docker_traefik_backend_ingress_networks:
       - test-backend-a
       - test-backend-b
     docker_traefik_enable_whoami: true
@@ -112,7 +112,7 @@
     docker_traefik_dynamic_config_source_path: "{{ test_dynamic_source_path }}"
     docker_traefik_dynamic_config_basepath: "{{ test_dynamic_target_path }}"
     docker_traefik_dynamic_config_cleanup: true
-    docker_traefik_backend_networks:
+    docker_traefik_backend_ingress_networks:
       - test-backend-a
       - test-backend-b
     docker_traefik_enable_whoami: false

@@ -69,7 +69,7 @@ argument_specs:
         type: str
         default: traefik-egress-net
 
-      docker_traefik_backend_networks:
+      docker_traefik_backend_ingress_networks:
         type: list
         elements: str
         default: []

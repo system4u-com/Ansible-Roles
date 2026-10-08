@@ -4,11 +4,12 @@
     name: "{{ docker_traefik_egress_network }}"
     state: present
 
-- name: Create Traefik backend networks
+- name: Create Traefik backend ingress networks
   community.docker.docker_network:
     name: "{{ item }}"
+    internal: true
     state: present
-  loop: "{{ docker_traefik_backend_networks }}"
+  loop: "{{ docker_traefik_backend_ingress_networks }}"
 
 - name: Initialize Traefik container networks
   ansible.builtin.set_fact:
@@ -16,10 +17,10 @@
       - name: "{{ docker_traefik_docker_socket_proxy_container_network }}"
       - name: "{{ docker_traefik_egress_network }}"
 
-- name: Add backend networks to Traefik container networks
+- name: Add backend ingress networks to Traefik container networks
   ansible.builtin.set_fact:
     docker_traefik_container_networks: "{{ docker_traefik_container_networks + [{'name': item}] }}"
-  loop: "{{ docker_traefik_backend_networks }}"
+  loop: "{{ docker_traefik_backend_ingress_networks }}"
 
 - name: Add Whoami network to Traefik container networks
   ansible.builtin.set_fact:

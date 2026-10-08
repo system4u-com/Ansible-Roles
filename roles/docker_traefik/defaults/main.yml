@@ -7,10 +7,9 @@ docker_traefik_docker_socket_proxy_container_network: "traefik-docker-socket-pro
 # Traefik outbound network.
 docker_traefik_egress_network: "traefik-egress-net"
 
-# Backend network isolation.
-# Each backend gets its own network. Traefik is attached to every network in
-# this list, while backend containers should be attached to only their own.
-docker_traefik_backend_networks: []
+# Backend ingress network isolation.
+# Each network is internal and shared only by Traefik and one backend.
+docker_traefik_backend_ingress_networks: []
 
 # Traefik container.
 docker_traefik_container_name: "traefik"

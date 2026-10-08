@@ -21,12 +21,14 @@
     content: |
       # Managed by Ansible
 
-      This directory is managed by the `system4u.infra.docker_traefik` role.
+      This directory is managed exclusively by the
+      `system4u.infra.docker_traefik` role.
       Do not edit, add, or remove files manually here.
 
       Dynamic configuration must be changed in the configured source directory:
       `docker_traefik_dynamic_config_source_path`.
-      The role replaces the generated `.yml` and `.yaml` files on each run.
+      The role replaces generated `.yml` and `.yaml` files on each run when
+      `docker_traefik_dynamic_config_cleanup` is enabled.
     owner: "{{ docker_user }}"
     group: "{{ docker_group }}"
     mode: "0644"
