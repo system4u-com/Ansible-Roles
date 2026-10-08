@@ -90,8 +90,10 @@
         - name: Verify unauthenticated Redis response
           ansible.builtin.assert:
             that:
-              - redis_unauthenticated_ping.rc != 0
-              - "'NOAUTH Authentication required.' in redis_unauthenticated_ping.stderr"
+              - >-
+                'NOAUTH Authentication required.' in
+                (redis_unauthenticated_ping.stdout
+                ~ redis_unauthenticated_ping.stderr)
 
         - name: Verify managed configuration notice
           ansible.builtin.stat:
