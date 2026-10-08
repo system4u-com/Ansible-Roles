@@ -9,6 +9,9 @@ authors:
 
 description: Shared Ansible roles for infrastructure provisioning.
 
+repository: https://github.com/system4u-com/Ansible-Roles
+issues: https://github.com/system4u-com/Ansible-Roles/issues
+
 license:
   - MIT
 
