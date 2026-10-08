@@ -1,0 +1,142 @@
+---
+- name: Test docker_agentgateway behind Traefik
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    docker_user: "{{ lookup('ansible.builtin.pipe', 'id -un') }}"
+    docker_group: "{{ lookup('ansible.builtin.pipe', 'id -gn') }}"
+    docker_uid: "{{ lookup('ansible.builtin.pipe', 'id -u') | int }}"
+    docker_gid: "{{ lookup('ansible.builtin.pipe', 'id -g') | int }}"
+    docker_data_basepath: /tmp/system4u-agentgateway-ci
+    system_timezone: UTC
+    docker_agentgateway_container_name: agentgateway-ci
+    docker_agentgateway_ingress_network: agentgateway-ci-ingress-net
+    docker_agentgateway_egress_network: agentgateway-ci-egress-net
+    docker_agentgateway_downstream_networks:
+      - agentgateway-ci-mcp-net
+    docker_agentgateway_container_published_ports: []
+
+  tasks:
+    - name: Create Traefik-owned ingress network for the test
+      community.docker.docker_network:
+        name: "{{ docker_agentgateway_ingress_network }}"
+        internal: true
+        state: present
+
+    - name: Run agentgateway runtime test
+      block:
+        - name: Include docker_agentgateway role
+          ansible.builtin.include_role:
+            name: docker_agentgateway
+
+        - name: Read agentgateway startup logs
+          ansible.builtin.command:
+            cmd: docker logs {{ docker_agentgateway_container_name }}
+          register: agentgateway_startup_logs
+          changed_when: false
+          failed_when: false
+
+        - name: Show agentgateway startup logs
+          ansible.builtin.debug:
+            var: agentgateway_startup_logs.stdout
+
+        - name: Wait for agentgateway container to be running
+          community.docker.docker_container_info:
+            name: "{{ docker_agentgateway_container_name }}"
+          register: agentgateway_container_info
+          until:
+            - agentgateway_container_info.exists
+            - agentgateway_container_info.container.State.Status == 'running'
+          retries: 15
+          delay: 2
+
+        - name: Inspect agentgateway ingress network
+          community.docker.docker_network_info:
+            name: "{{ docker_agentgateway_ingress_network }}"
+          register: agentgateway_ingress_network_info
+
+        - name: Inspect agentgateway egress network
+          community.docker.docker_network_info:
+            name: "{{ docker_agentgateway_egress_network }}"
+          register: agentgateway_egress_network_info
+
+        - name: Inspect agentgateway downstream network
+          community.docker.docker_network_info:
+            name: agentgateway-ci-mcp-net
+          register: agentgateway_downstream_network_info
+
+        - name: Read agentgateway container logs
+          ansible.builtin.command:
+            cmd: docker logs {{ docker_agentgateway_container_name }}
+          register: agentgateway_logs
+          changed_when: false
+          failed_when: false
+
+        - name: Verify agentgateway container runtime
+          ansible.builtin.assert:
+            that:
+              - agentgateway_container_info.exists
+              - agentgateway_container_info.container.Config.User == docker_uid ~ ':' ~ docker_gid
+              - agentgateway_container_info.container.HostConfig.PortBindings == {}
+              - agentgateway_container_info.container.Config.Cmd == ['-f', '/config/config.yaml']
+              - agentgateway_container_info.container.State.ExitCode == 0
+              - agentgateway_container_info.container.State.Status == 'running'
+
+        - name: Verify agentgateway network topology
+          ansible.builtin.assert:
+            that:
+              - agentgateway_ingress_network_info.network.Internal
+              - agentgateway_egress_network_info.exists
+              - not agentgateway_egress_network_info.network.Internal
+              - agentgateway_downstream_network_info.network.Internal
+              - agentgateway_ingress_network in
+                agentgateway_container_info.container.NetworkSettings.Networks
+              - agentgateway_egress_network in
+                agentgateway_container_info.container.NetworkSettings.Networks
+              - "agentgateway-ci-mcp-net in agentgateway_container_info.container.NetworkSettings.Networks"
+
+        - name: Verify agentgateway configuration
+          ansible.builtin.slurp:
+            src: >-
+              {{ docker_data_basepath }}/{{ docker_agentgateway_container_name }}/
+              {{ docker_agentgateway_config_filename }}
+          register: agentgateway_config
+
+        - name: Verify agentgateway default configuration
+          ansible.builtin.assert:
+            that:
+              - "'port: 4000' in (agentgateway_config.content | b64decode)"
+              - "'sqlite' not in (agentgateway_config.content | b64decode)"
+              - "'ui:' not in (agentgateway_config.content | b64decode)"
+
+        - name: Verify agentgateway started successfully
+          ansible.builtin.assert:
+            that:
+              - agentgateway_container_info.container.State.Status == 'running'
+              - "'error' not in (agentgateway_logs.stderr | lower)"
+      always:
+        - name: Remove agentgateway test container
+          community.docker.docker_container:
+            name: "{{ docker_agentgateway_container_name }}"
+            state: absent
+
+        - name: Remove agentgateway downstream network
+          community.docker.docker_network:
+            name: agentgateway-ci-mcp-net
+            state: absent
+
+        - name: Remove agentgateway egress network
+          community.docker.docker_network:
+            name: "{{ docker_agentgateway_egress_network }}"
+            state: absent
+
+        - name: Remove agentgateway ingress network
+          community.docker.docker_network:
+            name: "{{ docker_agentgateway_ingress_network }}"
+            state: absent
+
+        - name: Remove agentgateway test files
+          ansible.builtin.file:
+            path: "{{ docker_data_basepath }}"
+            state: absent

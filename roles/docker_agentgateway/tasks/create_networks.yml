@@ -1,0 +1,12 @@
+---
+- name: Create agentgateway egress network
+  community.docker.docker_network:
+    name: "{{ docker_agentgateway_egress_network }}"
+    state: present
+
+- name: Create agentgateway downstream networks
+  community.docker.docker_network:
+    name: "{{ item }}"
+    internal: "{{ docker_agentgateway_downstream_network_internal }}"
+    state: present
+  loop: "{{ docker_agentgateway_downstream_networks }}"

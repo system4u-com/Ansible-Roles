@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://agentgateway.dev/schema/config
+# Default agentgateway configuration managed by Ansible.
+# Configuration is intentionally stateless and has no UI or database.
+gateways:
+  default:
+    port: {{ docker_agentgateway_gateway_port }}

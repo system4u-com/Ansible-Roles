@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  author: System4u.com
+  description: Deploy an agentgateway backend behind Traefik.
+  license: MIT
+  min_ansible_version: "2.15"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+
+dependencies: []

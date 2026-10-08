@@ -1,0 +1,16 @@
+---
+- name: Validate agentgateway configuration
+  ansible.builtin.import_tasks:
+    file: validate.yml
+
+- name: Configure agentgateway files
+  ansible.builtin.import_tasks:
+    file: configure_files.yml
+
+- name: Create agentgateway networks
+  ansible.builtin.import_tasks:
+    file: create_networks.yml
+
+- name: Create agentgateway container
+  ansible.builtin.import_tasks:
+    file: create_agentgateway.yml

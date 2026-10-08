@@ -1,0 +1,52 @@
+---
+- name: Create agentgateway data directory
+  ansible.builtin.file:
+    path: "{{ docker_agentgateway_container_data_basepath }}"
+    state: directory
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0750"
+
+- name: Set agentgateway configuration source path
+  ansible.builtin.set_fact:
+    docker_agentgateway_effective_config_source_path: >-
+      {{ docker_agentgateway_config_source_path
+      if docker_agentgateway_config_source_path | length > 0
+      else role_path ~ '/templates/config/config.yaml.j2' }}
+
+- name: Check agentgateway configuration source
+  ansible.builtin.stat:
+    path: "{{ docker_agentgateway_effective_config_source_path }}"
+  register: docker_agentgateway_config_source_stat
+
+- name: Validate agentgateway configuration source
+  ansible.builtin.assert:
+    that:
+      - docker_agentgateway_config_source_stat.stat.exists
+      - docker_agentgateway_config_source_stat.stat.isreg
+    fail_msg: >-
+      Agentgateway configuration source must be an existing file:
+      {{ docker_agentgateway_effective_config_source_path }}.
+
+- name: Create agentgateway configuration management notice
+  ansible.builtin.copy:
+    dest: "{{ docker_agentgateway_container_data_basepath }}/README.md"
+    content: |
+      # Managed by Ansible
+
+      This directory is managed by the `system4u.infra.docker_agentgateway`
+      role. Do not edit generated files manually.
+      Change the source configured by `docker_agentgateway_config_source_path`.
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0644"
+
+- name: Deploy agentgateway configuration
+  ansible.builtin.template:
+    src: "{{ docker_agentgateway_effective_config_source_path }}"
+    dest: >-
+      {{ docker_agentgateway_container_data_basepath }}/
+      {{ docker_agentgateway_config_filename }}
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0640"

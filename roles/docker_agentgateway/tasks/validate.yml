@@ -1,0 +1,59 @@
+---
+- name: Validate agentgateway ingress network
+  ansible.builtin.assert:
+    that:
+      - docker_agentgateway_ingress_network | length > 0
+      - docker_agentgateway_ingress_network is match('.*-ingress-net$')
+    fail_msg: >-
+      docker_agentgateway_ingress_network must be a non-empty name ending in
+      -ingress-net. The network must be created by the Traefik role.
+  when: docker_agentgateway_enable_traefik_frontend | bool
+
+- name: Check agentgateway ingress network
+  community.docker.docker_network_info:
+    name: "{{ docker_agentgateway_ingress_network }}"
+  register: docker_agentgateway_ingress_network_info
+  when: docker_agentgateway_enable_traefik_frontend | bool
+
+- name: Validate agentgateway ingress network ownership
+  ansible.builtin.assert:
+    that:
+      - docker_agentgateway_ingress_network_info.exists
+      - docker_agentgateway_ingress_network_info.network.Internal
+    fail_msg: >-
+      The agentgateway ingress network must already exist and be internal.
+      Create it through docker_traefik_backend_ingress_networks.
+  when: docker_agentgateway_enable_traefik_frontend | bool
+
+- name: Validate direct published port configuration
+  ansible.builtin.assert:
+    that:
+      - docker_agentgateway_container_published_ports | length > 0
+    fail_msg: >-
+      docker_agentgateway_container_published_ports must be configured when
+      docker_agentgateway_enable_traefik_frontend is false.
+  when: not docker_agentgateway_enable_traefik_frontend | bool
+
+- name: Validate agentgateway egress network
+  ansible.builtin.assert:
+    that:
+      - docker_agentgateway_egress_network | length > 0
+      - docker_agentgateway_egress_network is match('.*-egress-net$')
+    fail_msg: >-
+      docker_agentgateway_egress_network must be a non-empty name ending in
+      -egress-net.
+
+- name: Validate downstream network names
+  ansible.builtin.assert:
+    that:
+      - item is string
+      - item | length > 0
+      - item is match('.*-net$')
+    fail_msg: "Downstream network names must be non-empty and end in -net."
+  loop: "{{ docker_agentgateway_downstream_networks }}"
+
+- name: Validate downstream network uniqueness
+  ansible.builtin.assert:
+    that:
+      - docker_agentgateway_downstream_networks | unique | length == docker_agentgateway_downstream_networks | length
+    fail_msg: "Downstream network names must be unique."

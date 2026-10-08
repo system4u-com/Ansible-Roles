@@ -1,0 +1,82 @@
+---
+argument_specs:
+  main:
+    short_description: Deploy an agentgateway backend behind Traefik
+    options:
+      docker_agentgateway_container_name:
+        type: str
+        default: agentgateway
+
+      docker_agentgateway_container_image:
+        type: str
+        default: cr.agentgateway.dev/agentgateway:v1.6.0
+
+      docker_agentgateway_gateway_port:
+        type: int
+        default: 4000
+
+      docker_agentgateway_enable_traefik_frontend:
+        type: bool
+        default: true
+
+      docker_agentgateway_container_published_ports:
+        type: list
+        elements: str
+        default: []
+
+      docker_agentgateway_ingress_network:
+        type: str
+        required: true
+
+      docker_agentgateway_egress_network:
+        type: str
+        default: agentgateway-egress-net
+
+      docker_agentgateway_downstream_networks:
+        type: list
+        elements: str
+        default: []
+
+      docker_agentgateway_downstream_network_internal:
+        type: bool
+        default: true
+
+      docker_agentgateway_container_data_basepath:
+        type: path
+        default: "{{ docker_data_basepath }}/{{ docker_agentgateway_container_name }}"
+
+      docker_agentgateway_config_source_path:
+        type: path
+        default: ""
+
+      docker_agentgateway_config_container_path:
+        type: path
+        default: /config
+
+      docker_agentgateway_config_filename:
+        type: str
+        default: config.yaml
+
+      docker_agentgateway_container_environment_default:
+        type: list
+        elements: dict
+        default:
+          - key: TZ
+            value: "{{ system_timezone }}"
+
+      docker_agentgateway_container_environment_override:
+        type: list
+        elements: dict
+        default: []
+
+      docker_agentgateway_container_labels_default:
+        type: list
+        elements: dict
+        default:
+          - key: traefik.enable
+            value: "false"
+
+      docker_agentgateway_container_labels_override:
+        type: list
+        elements: dict
+        default: []

@@ -1,0 +1,71 @@
+---
+- name: Initialize agentgateway container networks
+  ansible.builtin.set_fact:
+    docker_agentgateway_container_networks:
+      - name: "{{ docker_agentgateway_egress_network }}"
+
+- name: Attach agentgateway to Traefik ingress network
+  ansible.builtin.set_fact:
+    docker_agentgateway_container_networks: >-
+      {{ docker_agentgateway_container_networks
+      + [{'name': docker_agentgateway_ingress_network}] }}
+  when: docker_agentgateway_enable_traefik_frontend | bool
+
+- name: Add agentgateway downstream networks
+  ansible.builtin.set_fact:
+    docker_agentgateway_container_networks: >-
+      {{ docker_agentgateway_container_networks + [{'name': item}] }}
+  loop: "{{ docker_agentgateway_downstream_networks }}"
+
+- name: Create agentgateway container labels dictionary
+  ansible.builtin.include_role:
+    name: helper_merge_kv
+  vars:
+    helper_merge_kv_default: >-
+      {{ docker_agentgateway_container_labels_default
+      + ([{
+        'key': 'traefik.docker.network',
+        'value': docker_agentgateway_ingress_network
+      }] if docker_agentgateway_enable_traefik_frontend | bool else []) }}
+    helper_merge_kv_override: "{{ docker_agentgateway_container_labels_override }}"
+    helper_merge_kv_output: docker_agentgateway_container_labels
+
+- name: Create agentgateway container environment dictionary
+  ansible.builtin.include_role:
+    name: helper_merge_kv
+  vars:
+    helper_merge_kv_default: "{{ docker_agentgateway_container_environment_default }}"
+    helper_merge_kv_override: "{{ docker_agentgateway_container_environment_override }}"
+    helper_merge_kv_output: docker_agentgateway_container_environment
+
+- name: Create agentgateway container
+  community.docker.docker_container:
+    docker_host: unix:///var/run/docker.sock
+    name: "{{ docker_agentgateway_container_name }}"
+    image: "{{ docker_agentgateway_container_image }}"
+    pull: true
+    recreate: true
+    container_default_behavior: "no_defaults"
+    networks_cli_compatible: true
+    networks: "{{ docker_agentgateway_container_networks }}"
+    published_ports: >-
+      {{ [] if docker_agentgateway_enable_traefik_frontend | bool
+      else docker_agentgateway_container_published_ports }}
+    env: "{{ docker_agentgateway_container_environment }}"
+    user: "{{ docker_uid }}:{{ docker_gid }}"
+    command:
+      - -f
+      - "{{ docker_agentgateway_config_container_path }}/{{ docker_agentgateway_config_filename }}"
+    read_only: true
+    security_opts:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp
+    volumes:
+      - >-
+        {{ docker_agentgateway_container_data_basepath }}:{{ docker_agentgateway_config_container_path }}
+    restart_policy: unless-stopped
+    state: started
+  no_log: true

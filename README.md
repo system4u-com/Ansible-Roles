@@ -71,6 +71,12 @@ See [`roles/docker_traefik/README.md`](roles/docker_traefik/README.md) for
 backend network isolation, dashboard labels, and the optional Whoami debug
 container.
 
+## Agentgateway role
+
+See [`roles/docker_agentgateway/README.md`](roles/docker_agentgateway/README.md)
+for Traefik integration and isolated ingress, egress, and downstream/MCP
+networks.
+
 ## Redis cache role
 
 See [`roles/docker_redis_cache/README.md`](roles/docker_redis_cache/README.md) for

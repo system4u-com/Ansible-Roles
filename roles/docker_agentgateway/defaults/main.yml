@@ -1,0 +1,36 @@
+---
+# Agentgateway container.
+docker_agentgateway_container_name: "agentgateway"
+docker_agentgateway_container_image: "cr.agentgateway.dev/agentgateway:v1.6.0"
+docker_agentgateway_gateway_port: 4000
+docker_agentgateway_enable_traefik_frontend: true
+# Ignored when the Traefik frontend is enabled.
+docker_agentgateway_container_published_ports: []
+
+# The Traefik role owns and creates this internal ingress network.
+docker_agentgateway_ingress_network: ""
+
+# This role owns the agentgateway egress network.
+docker_agentgateway_egress_network: "agentgateway-egress-net"
+
+# Each downstream/MCP service can use its own isolated internal network.
+# This role owns and creates these networks.
+docker_agentgateway_downstream_networks: []
+docker_agentgateway_downstream_network_internal: true
+
+# Agentgateway configuration and writable data.
+docker_agentgateway_container_data_basepath: >-
+  {{ docker_data_basepath }}/{{ docker_agentgateway_container_name }}
+docker_agentgateway_config_source_path: ""
+docker_agentgateway_config_container_path: "/config"
+docker_agentgateway_config_filename: "config.yaml"
+
+# Agentgateway container environment.
+docker_agentgateway_container_environment_default:
+  - {key: "TZ", value: "{{ system_timezone }}"}
+docker_agentgateway_container_environment_override: []
+
+# Traefik labels. Routing is disabled by default.
+docker_agentgateway_container_labels_default:
+  - {key: "traefik.enable", value: "false"}
+docker_agentgateway_container_labels_override: []
