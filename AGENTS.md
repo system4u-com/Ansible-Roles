@@ -13,6 +13,9 @@ intended to be reusable building blocks for Docker-based infrastructure.
 - Collection metadata lives in `galaxy.yml`.
 - Collection dependencies are declared in both `galaxy.yml` and
   `requirements.yml` when applicable.
+- Update `CHANGELOG.rst` for every user-visible role, variable, behavior,
+  dependency, CI, or documentation change. Keep entries grouped by release
+  and use reStructuredText syntax.
 
 ## Role structure
 
