@@ -1,0 +1,114 @@
+---
+- name: Test docker_redis_cache on a Docker-enabled runner
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    docker_user: "{{ lookup('ansible.builtin.pipe', 'id -un') }}"
+    docker_group: "{{ lookup('ansible.builtin.pipe', 'id -gn') }}"
+    docker_uid: "{{ lookup('ansible.builtin.pipe', 'id -u') | int }}"
+    docker_gid: "{{ lookup('ansible.builtin.pipe', 'id -g') | int }}"
+    docker_data_basepath: /tmp/system4u-redis-cache-ci
+    system_timezone: UTC
+    docker_redis_cache_container_name: redis-cache-ci
+    docker_redis_cache_networks:
+      - redis-cache-ci-net
+    docker_redis_cache_config_basepath: /tmp/system4u-redis-cache-ci/config
+    docker_redis_cache_requirepass: ci-test-password
+    docker_redis_cache_container_published_ports: []
+
+  tasks:
+    - name: Run Redis cache runtime test
+      block:
+        - name: Include docker_redis_cache role
+          ansible.builtin.include_role:
+            name: docker_redis_cache
+
+        - name: Inspect Redis cache container
+          community.docker.docker_container_info:
+            name: "{{ docker_redis_cache_container_name }}"
+          register: redis_cache_container_info
+
+        - name: Inspect Redis cache network
+          community.docker.docker_network_info:
+            name: redis-cache-ci-net
+          register: redis_cache_network_info
+
+        - name: Verify Redis cache runtime
+          ansible.builtin.assert:
+            that:
+              - redis_cache_container_info.exists
+              - redis_cache_container_info.container.Config.User == docker_uid ~ ':' ~ docker_gid
+              - redis_cache_container_info.container.HostConfig.PortBindings == {}
+              - redis_cache_container_info.container.State.Status == 'running'
+              - redis_cache_network_info.exists
+              - redis_cache_network_info.network.Internal
+              - docker_redis_cache_container_name in redis_cache_network_info.network.Containers
+
+        - name: Read Redis cache configuration
+          ansible.builtin.slurp:
+            src: "{{ docker_redis_cache_config_basepath }}/redis.conf"
+          register: redis_cache_config
+
+        - name: Verify ephemeral cache configuration
+          ansible.builtin.assert:
+            that:
+              - "'appendonly no' in (redis_cache_config.content | b64decode)"
+              - "'save \"\"' in (redis_cache_config.content | b64decode)"
+              - "'maxmemory-policy allkeys-lru' in (redis_cache_config.content | b64decode)"
+
+        - name: Verify authenticated Redis ping
+          ansible.builtin.command:
+            cmd: >-
+              docker exec {{ docker_redis_cache_container_name }} redis-cli ping
+          environment:
+            REDISCLI_AUTH: ci-test-password
+          register: redis_authenticated_ping
+          changed_when: false
+          no_log: true
+
+        - name: Verify authenticated Redis response
+          ansible.builtin.assert:
+            that:
+              - redis_authenticated_ping.stdout == 'PONG'
+
+        - name: Verify unauthenticated Redis access is rejected
+          ansible.builtin.command:
+            cmd: >-
+              docker exec {{ docker_redis_cache_container_name }}
+              env -u REDISCLI_AUTH redis-cli ping
+          register: redis_unauthenticated_ping
+          changed_when: false
+          failed_when: false
+          no_log: true
+
+        - name: Verify unauthenticated Redis response
+          ansible.builtin.assert:
+            that:
+              - redis_unauthenticated_ping.rc != 0
+              - "'NOAUTH Authentication required.' in redis_unauthenticated_ping.stderr"
+
+        - name: Verify managed configuration notice
+          ansible.builtin.stat:
+            path: "{{ docker_redis_cache_config_basepath }}/README.md"
+          register: redis_cache_notice
+
+        - name: Verify managed configuration notice exists
+          ansible.builtin.assert:
+            that:
+              - redis_cache_notice.stat.exists
+      always:
+        - name: Remove Redis cache test container
+          community.docker.docker_container:
+            name: "{{ docker_redis_cache_container_name }}"
+            state: absent
+
+        - name: Remove Redis cache test network
+          community.docker.docker_network:
+            name: redis-cache-ci-net
+            state: absent
+
+        - name: Remove Redis cache test files
+          ansible.builtin.file:
+            path: "{{ docker_data_basepath }}"
+            state: absent

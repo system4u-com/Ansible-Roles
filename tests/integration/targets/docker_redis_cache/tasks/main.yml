@@ -1,0 +1,87 @@
+---
+- name: Include docker_redis_cache role with default cache settings
+  ansible.builtin.include_role:
+    name: system4u.infra.docker_redis_cache
+  vars:
+    docker_redis_cache_networks:
+      - redis-cache-test-net
+    docker_redis_cache_config_basepath: "{{ remote_tmp_dir }}/redis-cache"
+    docker_redis_cache_container_published_ports: []
+
+- name: Inspect Redis cache container
+  community.docker.docker_container_info:
+    name: "{{ docker_redis_cache_container_name }}"
+  register: redis_cache_container_info
+
+- name: Verify Redis cache container
+  ansible.builtin.assert:
+    that:
+      - redis_cache_container_info.exists
+      - redis_cache_container_info.container.Config.User == docker_uid ~ ':' ~ docker_gid
+      - redis_cache_container_info.container.HostConfig.PortBindings == {}
+      - redis_cache_container_info.container.State.Status == 'running'
+
+- name: Inspect Redis cache network
+  community.docker.docker_network_info:
+    name: redis-cache-test-net
+  register: redis_cache_network_info
+
+- name: Verify Redis cache network
+  ansible.builtin.assert:
+    that:
+      - redis_cache_network_info.exists
+      - redis_cache_network_info.network.Internal
+      - docker_redis_cache_container_name in redis_cache_network_info.network.Containers
+
+- name: Read Redis cache configuration
+  ansible.builtin.slurp:
+    src: "{{ remote_tmp_dir }}/redis-cache/redis.conf"
+  register: redis_cache_config
+
+- name: Verify Redis cache configuration
+  ansible.builtin.assert:
+    that:
+      - "'appendonly no' in (redis_cache_config.content | b64decode)"
+      - "'save \"\"' in (redis_cache_config.content | b64decode)"
+      - "'maxmemory-policy allkeys-lru' in (redis_cache_config.content | b64decode)"
+
+- name: Verify Redis responds without authentication
+  ansible.builtin.command:
+    cmd: >-
+      docker exec {{ docker_redis_cache_container_name }} redis-cli ping
+  register: redis_ping
+  changed_when: false
+
+- name: Assert Redis response
+  ansible.builtin.assert:
+    that:
+      - redis_ping.stdout == 'PONG'
+
+- name: Remove default Redis cache container before authentication test
+  community.docker.docker_container:
+    name: "{{ docker_redis_cache_container_name }}"
+    state: absent
+
+- name: Include docker_redis_cache role with authentication
+  ansible.builtin.include_role:
+    name: system4u.infra.docker_redis_cache
+  vars:
+    docker_redis_cache_networks:
+      - redis-cache-test-net
+    docker_redis_cache_config_basepath: "{{ remote_tmp_dir }}/redis-cache"
+    docker_redis_cache_requirepass: test-password
+    docker_redis_cache_container_published_ports: []
+
+- name: Verify Redis responds with authentication
+  ansible.builtin.command:
+    cmd: >-
+      docker exec -e REDISCLI_AUTH=test-password
+      {{ docker_redis_cache_container_name }} redis-cli ping
+  register: redis_authenticated_ping
+  changed_when: false
+  no_log: true
+
+- name: Assert authenticated Redis response
+  ansible.builtin.assert:
+    that:
+      - redis_authenticated_ping.stdout == 'PONG'
