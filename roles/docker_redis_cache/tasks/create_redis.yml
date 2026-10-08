@@ -1,0 +1,63 @@
+---
+- name: Initialize Redis cache container networks
+  ansible.builtin.set_fact:
+    docker_redis_cache_container_networks: []
+
+- name: Add Redis cache container networks
+  ansible.builtin.set_fact:
+    docker_redis_cache_container_networks: >-
+      {{ docker_redis_cache_container_networks + [{'name': item}] }}
+  loop: "{{ docker_redis_cache_networks }}"
+
+- name: Create Redis cache container environment dictionary
+  ansible.builtin.include_role:
+    name: helper_merge_kv
+  vars:
+    helper_merge_kv_default: "{{ docker_redis_cache_container_environment_default }}"
+    helper_merge_kv_override: "{{ docker_redis_cache_container_environment_override }}"
+    helper_merge_kv_output: docker_redis_cache_container_environment
+
+- name: Create Redis cache container
+  community.docker.docker_container:
+    docker_host: unix:///var/run/docker.sock
+    name: "{{ docker_redis_cache_container_name }}"
+    image: "{{ docker_redis_cache_container_image }}"
+    pull: true
+    recreate: true
+    container_default_behavior: "no_defaults"
+    networks_cli_compatible: true
+    networks: "{{ docker_redis_cache_container_networks }}"
+    published_ports: "{{ docker_redis_cache_container_published_ports }}"
+    env: >-
+      {{ docker_redis_cache_container_environment
+      | combine(
+        {'REDISCLI_AUTH': docker_redis_cache_requirepass}
+        if docker_redis_cache_requirepass | length > 0 else {}
+      ) }}
+    user: "{{ docker_uid }}:{{ docker_gid }}"
+    healthcheck: >-
+      {{ {
+        'test': ['CMD-SHELL', 'redis-cli -h 127.0.0.1 -p '
+          ~ (docker_redis_cache_container_port | string)
+          ~ ' ping | grep PONG'],
+        'interval': docker_redis_cache_healthcheck_interval,
+        'timeout': docker_redis_cache_healthcheck_timeout,
+        'retries': docker_redis_cache_healthcheck_retries,
+        'start_period': docker_redis_cache_healthcheck_start_period
+      } if docker_redis_cache_healthcheck_enabled | bool else none }}
+    command:
+      - redis-server
+      - "{{ docker_redis_cache_config_container_path }}/redis.conf"
+    read_only: true
+    security_opts:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - /tmp
+    volumes:
+      - >-
+        {{ docker_redis_cache_config_basepath }}/redis.conf:{{ docker_redis_cache_config_container_path }}/redis.conf:ro
+    restart_policy: unless-stopped
+    state: started
+  no_log: true

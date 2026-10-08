@@ -1,0 +1,91 @@
+---
+argument_specs:
+  main:
+    short_description: Deploy Redis as an isolated Docker cache
+    options:
+      docker_redis_cache_container_name:
+        type: str
+        default: redis-cache
+
+      docker_redis_cache_container_image:
+        type: str
+        default: redis:7.4
+
+      docker_redis_cache_container_port:
+        type: int
+        default: 6379
+
+      docker_redis_cache_container_published_ports:
+        type: list
+        elements: str
+        default: []
+
+      docker_redis_cache_networks:
+        type: list
+        elements: str
+        default:
+          - redis-cache-net
+
+      docker_redis_cache_maxmemory:
+        type: str
+        default: 512mb
+
+      docker_redis_cache_maxmemory_policy:
+        type: str
+        choices:
+          - allkeys-lru
+          - allkeys-lfu
+          - volatile-lru
+          - volatile-lfu
+          - volatile-ttl
+          - noeviction
+        default: allkeys-lru
+
+      docker_redis_cache_maxmemory_samples:
+        type: int
+        default: 10
+
+      docker_redis_cache_requirepass:
+        type: str
+        default: ""
+        no_log: true
+
+      docker_redis_cache_healthcheck_enabled:
+        type: bool
+        default: true
+
+      docker_redis_cache_healthcheck_interval:
+        type: str
+        default: "30s"
+
+      docker_redis_cache_healthcheck_timeout:
+        type: str
+        default: "5s"
+
+      docker_redis_cache_healthcheck_retries:
+        type: int
+        default: 3
+
+      docker_redis_cache_healthcheck_start_period:
+        type: str
+        default: "10s"
+
+      docker_redis_cache_config_basepath:
+        type: path
+        default: "{{ docker_data_basepath }}/redis-cache"
+
+      docker_redis_cache_config_container_path:
+        type: path
+        default: /usr/local/etc/redis
+
+      docker_redis_cache_container_environment_default:
+        type: list
+        elements: dict
+        default:
+          - key: TZ
+            value: "{{ system_timezone }}"
+
+      docker_redis_cache_container_environment_override:
+        type: list
+        elements: dict
+        default: []

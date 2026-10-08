@@ -1,0 +1,16 @@
+---
+- name: Validate Redis cache configuration
+  ansible.builtin.import_tasks:
+    file: validate.yml
+
+- name: Create Redis cache networks
+  ansible.builtin.import_tasks:
+    file: create_networks.yml
+
+- name: Configure Redis cache files
+  ansible.builtin.import_tasks:
+    file: configure_files.yml
+
+- name: Create Redis cache container
+  ansible.builtin.import_tasks:
+    file: create_redis.yml

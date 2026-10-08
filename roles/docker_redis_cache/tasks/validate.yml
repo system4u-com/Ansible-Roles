@@ -1,0 +1,21 @@
+---
+- name: Validate Redis cache networks
+  ansible.builtin.assert:
+    that:
+      - docker_redis_cache_networks | length > 0
+      - item is string
+      - item | length > 0
+    fail_msg: "Redis cache networks must be non-empty strings."
+  loop: "{{ docker_redis_cache_networks }}"
+
+- name: Validate Redis cache network uniqueness
+  ansible.builtin.assert:
+    that:
+      - docker_redis_cache_networks | unique | length == docker_redis_cache_networks | length
+    fail_msg: "Redis cache network names must be unique."
+
+- name: Validate Redis cache maxmemory samples
+  ansible.builtin.assert:
+    that:
+      - docker_redis_cache_maxmemory_samples > 0
+    fail_msg: "docker_redis_cache_maxmemory_samples must be greater than zero."

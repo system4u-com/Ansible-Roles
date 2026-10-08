@@ -1,0 +1,7 @@
+---
+- name: Create Redis cache network
+  community.docker.docker_network:
+    name: "{{ item }}"
+    internal: true
+    state: present
+  loop: "{{ docker_redis_cache_networks }}"

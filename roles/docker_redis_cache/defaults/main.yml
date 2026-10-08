@@ -1,0 +1,33 @@
+---
+# Redis cache container.
+docker_redis_cache_container_name: "redis-cache"
+docker_redis_cache_container_image: "redis:7.4"
+docker_redis_cache_container_port: 6379
+docker_redis_cache_container_published_ports: []
+
+# Only applications explicitly attached to these networks can reach Redis.
+# All networks created by this role are internal Docker networks.
+docker_redis_cache_networks:
+  - "redis-cache-net"
+
+# Cache memory and eviction policy.
+docker_redis_cache_maxmemory: "512mb"
+docker_redis_cache_maxmemory_policy: "allkeys-lru"
+docker_redis_cache_maxmemory_samples: 10
+
+# Optional Redis authentication.
+docker_redis_cache_requirepass: ""
+
+# Redis healthcheck.
+docker_redis_cache_healthcheck_enabled: true
+docker_redis_cache_healthcheck_interval: "30s"
+docker_redis_cache_healthcheck_timeout: "5s"
+docker_redis_cache_healthcheck_retries: 3
+docker_redis_cache_healthcheck_start_period: "10s"
+
+# Redis configuration and container environment.
+docker_redis_cache_config_basepath: "{{ docker_data_basepath }}/redis-cache"
+docker_redis_cache_config_container_path: "/usr/local/etc/redis"
+docker_redis_cache_container_environment_default:
+  - {key: "TZ", value: "{{ system_timezone }}"}
+docker_redis_cache_container_environment_override: []

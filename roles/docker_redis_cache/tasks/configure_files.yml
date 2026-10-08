@@ -1,0 +1,30 @@
+---
+- name: Create Redis cache configuration directory
+  ansible.builtin.file:
+    path: "{{ docker_redis_cache_config_basepath }}"
+    state: directory
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0750"
+
+- name: Create Redis cache management notice
+  ansible.builtin.copy:
+    dest: "{{ docker_redis_cache_config_basepath }}/README.md"
+    content: |
+      # Managed by Ansible
+
+      This directory is managed by the `system4u.infra.docker_redis_cache` role.
+      Do not edit, add, or remove files manually here.
+      Redis configuration must be changed through role variables.
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0644"
+
+- name: Render Redis cache configuration
+  ansible.builtin.template:
+    src: redis.conf.j2
+    dest: "{{ docker_redis_cache_config_basepath }}/redis.conf"
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0600"
+  no_log: true

@@ -71,6 +71,12 @@ See [`roles/docker_traefik/README.md`](roles/docker_traefik/README.md) for
 backend network isolation, dashboard labels, and the optional Whoami debug
 container.
 
+## Redis cache role
+
+See [`roles/docker_redis_cache/README.md`](roles/docker_redis_cache/README.md) for
+isolated network access, memory limits, eviction policy, authentication, and
+ephemeral cache behavior.
+
 ## Helper role
 
 The `helper_merge_kv` role merges string key-value lists and supports

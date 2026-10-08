@@ -1,0 +1,17 @@
+# Redis cache configuration managed by Ansible.
+bind 0.0.0.0
+protected-mode yes
+port {{ docker_redis_cache_container_port }}
+tcp-keepalive 300
+timeout 0
+
+maxmemory {{ docker_redis_cache_maxmemory }}
+maxmemory-policy {{ docker_redis_cache_maxmemory_policy }}
+maxmemory-samples {{ docker_redis_cache_maxmemory_samples }}
+
+# Persistence is intentionally disabled for this cache role.
+appendonly no
+save ""
+{% if docker_redis_cache_requirepass | length > 0 %}
+requirepass {{ docker_redis_cache_requirepass }}
+{% endif %}
