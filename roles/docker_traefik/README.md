@@ -83,7 +83,7 @@ internal control-plane network. Only Traefik and the socket proxy should use
 it; backend containers should remain on their own backend networks.
 
 Traefik also uses a dedicated non-internal egress network
-(`traefik-egress`) for Let's Encrypt, DNS provider APIs, and other outbound
+(`traefik-egress-net`) for Let's Encrypt, DNS provider APIs, and other outbound
 traffic. Backend containers are not attached to this network by the role.
 
 The role provides reusable default files for:

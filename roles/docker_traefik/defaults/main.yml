@@ -5,7 +5,7 @@ docker_traefik_docker_socket_proxy_container_image: "linuxserver/socket-proxy:3.
 docker_traefik_docker_socket_proxy_container_network: "traefik-docker-socket-proxy-net"
 
 # Traefik outbound network.
-docker_traefik_egress_network: "traefik-egress"
+docker_traefik_egress_network: "traefik-egress-net"
 
 # Backend network isolation.
 # Each backend gets its own network. Traefik is attached to every network in
