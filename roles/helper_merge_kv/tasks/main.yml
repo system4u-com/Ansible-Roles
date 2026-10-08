@@ -1,0 +1,113 @@
+# roles/helper_merge_kv/tasks/main.yml
+#
+# Merge two KV lists (defaults + override) into a dictionary.
+# - Last-write-wins: entries from the override list replace defaults.
+# - Deletion is supported with a configurable sentinel value.
+#
+# INPUTS (provided by caller):
+#   helper_merge_kv_default: list of mappings with key and value fields
+#   helper_merge_kv_override: list of mappings with key and value fields (optional)
+#   helper_merge_kv_output: string containing the name of the output variable
+#
+# OPTIONAL:
+#   helper_merge_kv_remove_token: string sentinel meaning "remove this key"
+#                                (default: "__remove__")
+#   helper_merge_kv_no_log: hide merged values from task output (default: true)
+
+- name: Validate default KV list
+  ansible.builtin.assert:
+    that:
+      - helper_merge_kv_default is defined
+      - helper_merge_kv_default is sequence
+      - helper_merge_kv_default is not string
+      - helper_merge_kv_default is not mapping
+    fail_msg: >-
+      helper_merge_kv_default must be a list of mappings with key and value
+      fields.
+  tags:
+    - always
+
+- name: Validate override KV list
+  ansible.builtin.assert:
+    that:
+      - helper_merge_kv_override is sequence
+      - helper_merge_kv_override is not string
+      - helper_merge_kv_override is not mapping
+    fail_msg: >-
+      helper_merge_kv_override must be a list of mappings with key and value
+      fields.
+  when: helper_merge_kv_override is defined
+  tags:
+    - always
+
+- name: Validate default KV entries
+  ansible.builtin.assert:
+    that:
+      - item is mapping
+      - item.key is defined
+      - item.value is defined
+    fail_msg: "Each default KV entry must contain key and value fields."
+  loop: "{{ helper_merge_kv_default }}"
+  loop_control:
+    label: "{{ item.key | default('<missing key>') }}"
+  tags:
+    - always
+
+- name: Validate override KV entries
+  ansible.builtin.assert:
+    that:
+      - item is mapping
+      - item.key is defined
+      - item.value is defined
+    fail_msg: "Each override KV entry must contain key and value fields."
+  loop: "{{ helper_merge_kv_override | default([]) }}"
+  loop_control:
+    label: "{{ item.key | default('<missing key>') }}"
+  tags:
+    - always
+
+- name: Validate output variable name
+  ansible.builtin.assert:
+    that:
+      - helper_merge_kv_output is defined
+      - helper_merge_kv_output is string
+      - helper_merge_kv_output | length > 0
+      - helper_merge_kv_output is match('^[A-Za-z_][A-Za-z0-9_]*$')
+    fail_msg: >-
+      helper_merge_kv_output must be a valid, non-empty Ansible variable name.
+  tags:
+    - always
+
+- name: Set default remove token
+  ansible.builtin.set_fact:
+    helper_merge_kv_remove_token: "{{ helper_merge_kv_remove_token | default('__remove__') }}"
+  tags:
+    - always
+
+- name: Validate remove token
+  ansible.builtin.assert:
+    that:
+      - helper_merge_kv_remove_token is string
+    fail_msg: "helper_merge_kv_remove_token must be a string."
+  tags:
+    - always
+
+- name: Initialize target KV dictionary
+  ansible.builtin.set_fact:
+    "{{ helper_merge_kv_output }}": {}
+  tags:
+    - always
+
+- name: Merge KV pairs with remove-token support
+  no_log: "{{ helper_merge_kv_no_log | bool }}"
+  ansible.builtin.set_fact:
+    "{{ helper_merge_kv_output }}": >-
+      {%- set cur = lookup('vars', helper_merge_kv_output) | default({}) -%}
+      {%- set k = item.key | string -%}
+      {%- set v = item.value | string -%}
+      {%- if v == helper_merge_kv_remove_token -%}
+      {{ (cur | dict2items | rejectattr('key', 'equalto', k) | items2dict) }}{%- else -%}
+      {{ (cur | combine({k: v})) }}{%- endif -%}
+  loop: "{{ (helper_merge_kv_default | default([])) + (helper_merge_kv_override | default([])) }}"
+  tags:
+    - always

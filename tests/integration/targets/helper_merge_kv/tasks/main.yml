@@ -1,0 +1,52 @@
+---
+- name: Merge default and override values
+  ansible.builtin.include_role:
+    name: system4u.infra.helper_merge_kv
+  vars:
+    helper_merge_kv_default:
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: REMOVE_ME
+        value: present
+    helper_merge_kv_override:
+      - key: LOG_LEVEL
+        value: debug
+      - key: DEBUG
+        value: true
+      - key: REMOVE_ME
+        value: "__remove__"
+    helper_merge_kv_output: merged_environment
+
+- name: Verify merged values
+  ansible.builtin.assert:
+    that:
+      - merged_environment.APP_ENV == "production"
+      - merged_environment.LOG_LEVEL == "debug"
+      - merged_environment.DEBUG == "True"
+      - merged_environment.REMOVE_ME is not defined
+
+- name: Test custom removal token
+  ansible.builtin.include_role:
+    name: system4u.infra.helper_merge_kv
+  vars:
+    helper_merge_kv_default:
+      - key: KEEP_ME
+        value: "yes"
+      - key: DELETE_ME
+        value: "yes"
+    helper_merge_kv_override:
+      - key: DELETE_ME
+        value: "__delete__"
+    helper_merge_kv_remove_token: "__delete__"
+    helper_merge_kv_output: custom_token_result
+
+- name: Verify custom removal token
+  ansible.builtin.assert:
+    that:
+      - custom_token_result.KEEP_ME == "True"
+      - custom_token_result.DELETE_ME is not defined
+
+- name: Run negative validation tests
+  ansible.builtin.include_tasks: negative.yml

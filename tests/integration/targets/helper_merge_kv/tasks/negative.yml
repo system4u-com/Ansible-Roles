@@ -1,0 +1,54 @@
+---
+- name: Verify missing defaults fail
+  block:
+    - name: Include role without defaults
+      ansible.builtin.include_role:
+        name: system4u.infra.helper_merge_kv
+      vars:
+        helper_merge_kv_output: invalid_result
+  rescue:
+    - name: Confirm missing defaults failure
+      ansible.builtin.set_fact:
+        missing_defaults_failed: true
+
+- name: Assert missing defaults failed
+  ansible.builtin.assert:
+    that:
+      - missing_defaults_failed | default(false) | bool
+
+- name: Verify malformed entry fails
+  block:
+    - name: Include role with malformed entry
+      ansible.builtin.include_role:
+        name: system4u.infra.helper_merge_kv
+      vars:
+        helper_merge_kv_default:
+          - key: ONLY_KEY
+        helper_merge_kv_output: invalid_entry
+  rescue:
+    - name: Confirm malformed entry failure
+      ansible.builtin.set_fact:
+        malformed_entry_failed: true
+
+- name: Assert malformed entry failed
+  ansible.builtin.assert:
+    that:
+      - malformed_entry_failed | default(false) | bool
+
+- name: Verify invalid output variable fails
+  block:
+    - name: Include role with invalid output variable
+      ansible.builtin.include_role:
+        name: system4u.infra.helper_merge_kv
+      vars:
+        helper_merge_kv_default: []
+        helper_merge_kv_output: "not-valid.output"
+  rescue:
+    - name: Confirm invalid output variable failure
+      ansible.builtin.set_fact:
+        invalid_output_failed: true
+
+- name: Assert invalid output variable failed
+  ansible.builtin.assert:
+    that:
+      - invalid_output_failed | default(false) | bool

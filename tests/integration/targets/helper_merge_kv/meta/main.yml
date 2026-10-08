@@ -1,0 +1,16 @@
+---
+dependency:
+  name: galaxy
+
+driver:
+  name: default
+
+platforms:
+  - name: instance
+    image: quay.io/ansible/fedora:latest
+
+provisioner:
+  name: ansible
+
+verifier:
+  name: ansible

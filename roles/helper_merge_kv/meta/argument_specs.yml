@@ -1,0 +1,43 @@
+---
+argument_specs:
+  main:
+    short_description: Merge string key-value lists
+    options:
+      helper_merge_kv_default:
+        type: list
+        required: true
+        elements: dict
+        options:
+          key:
+            type: raw
+            required: true
+          value:
+            type: raw
+            required: true
+
+      helper_merge_kv_override:
+        type: list
+        required: false
+        default: []
+        elements: dict
+        options:
+          key:
+            type: raw
+            required: true
+          value:
+            type: raw
+            required: true
+
+      helper_merge_kv_output:
+        type: str
+        required: true
+
+      helper_merge_kv_remove_token:
+        type: str
+        required: false
+        default: "__remove__"
+
+      helper_merge_kv_no_log:
+        type: bool
+        required: false
+        default: true
