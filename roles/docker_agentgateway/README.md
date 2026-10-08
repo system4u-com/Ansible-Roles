@@ -97,7 +97,9 @@ certificates are handled by Traefik.
 
 This first version does not configure the agentgateway UI or database. Add
 those features only as a deliberate extension when their authentication and
-storage requirements are defined.
+storage requirements are defined. Such an extension would require separate
+writable data/database storage instead of making the whole `/config` mount
+writable.
 
 Override the source file for a host or instance:
 
@@ -106,9 +108,9 @@ docker_agentgateway_config_source_path: >-
   {{ playbook_dir }}/templates/{{ inventory_hostname }}/agentgateway-a/config.yaml.j2
 ```
 
-The role renders the source into the writable `/config` mount. This allows
-agentgateway to write its database and any configuration changes made through
-the UI when those features are enabled.
+The role renders the source into the read-only `/config` mount. The current
+stateless configuration does not enable UI or database features and therefore
+does not need container-side writes.
 
 ## Multiple instances
 

@@ -65,7 +65,7 @@
       - /tmp
     volumes:
       - >-
-        {{ docker_agentgateway_container_data_basepath }}:{{ docker_agentgateway_config_container_path }}
+        {{ docker_agentgateway_container_data_basepath }}:{{ docker_agentgateway_config_container_path }}:ro
     restart_policy: unless-stopped
     state: started
   no_log: true
