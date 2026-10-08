@@ -1,0 +1,15 @@
+# Ansible collection build artifacts
+*.tar.gz
+
+# Ansible and Molecule files
+*.retry
+.molecule/
+.ansible/
+
+# Python environments and caches
+.venv/
+__pycache__/
+*.py[cod]
+
+# macOS
+.DS_Store

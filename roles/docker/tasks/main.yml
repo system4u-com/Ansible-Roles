@@ -1,0 +1,14 @@
+---
+- name: Validate supported platform
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.distribution == "Ubuntu"
+    fail_msg: "The docker role supports Ubuntu only."
+
+- name: Install Docker
+  ansible.builtin.import_tasks:
+    file: "install_packages.yml"
+
+- name: Configure Docker
+  ansible.builtin.import_tasks:
+    file: "configure.yml"

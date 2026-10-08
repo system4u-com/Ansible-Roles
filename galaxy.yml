@@ -1,0 +1,29 @@
+---
+namespace: system4u
+name: infra
+version: 0.1.0
+
+readme: README.md
+authors:
+  - System4u.com
+
+description: Shared Ansible roles for infrastructure provisioning.
+
+license:
+  - MIT
+
+tags:
+  - infrastructure
+  - linux
+  - docker
+
+dependencies:
+  ansible.posix: '>=1.5.0'
+  community.docker: '>=3.0.0'
+  community.general: '>=8.0.0'
+
+build_ignore:
+  - .git
+  - .github
+  - .venv
+  - '*.tar.gz'

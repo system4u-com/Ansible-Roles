@@ -1,0 +1,54 @@
+---
+- name: Remove old docker versions
+  ansible.builtin.apt:
+    pkg:
+      - docker
+      - docker-engine
+      - docker.io
+      - containerd
+      - runc
+    state: absent
+
+- name: Install Docker repository prerequisites
+  ansible.builtin.apt:
+    pkg:
+      - ca-certificates
+    state: present
+    update_cache: true
+    cache_valid_time: "{{ docker_apt_cache_ttl }}"
+
+- name: Create APT keyrings directory
+  ansible.builtin.file:
+    path: "{{ docker_apt_keyring | dirname }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Download Docker repository signing key
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: "{{ docker_apt_keyring }}"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Add Docker APT repository
+  ansible.builtin.apt_repository:
+    repo: >-
+      deb [signed-by={{ docker_apt_keyring }}]
+      https://download.docker.com/linux/ubuntu
+      {{ ansible_distribution_release }} stable
+    filename: docker
+    state: present
+
+- name: Install Docker CE and Docker SDK for Ansible
+  ansible.builtin.apt:
+    pkg:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - python3-docker
+    state: present
+    update_cache: true
+    cache_valid_time: "{{ docker_apt_cache_ttl }}"

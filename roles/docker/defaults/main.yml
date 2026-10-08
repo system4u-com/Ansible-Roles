@@ -1,0 +1,10 @@
+---
+docker_user: "docker4u"
+docker_uid: 9000
+docker_group: "docker4u"
+docker_gid: 9000
+docker_config_template_file: "daemon.j2"
+docker_apt_keyring: "/etc/apt/keyrings/docker.asc"
+
+# Validity of the local APT package cache in seconds.
+docker_apt_cache_ttl: 3600

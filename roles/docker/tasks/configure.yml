@@ -1,0 +1,32 @@
+---
+- name: "Create group {{ docker_group }}"
+  ansible.builtin.group:
+    gid: "{{ docker_gid }}"
+    name: "{{ docker_group }}"
+    state: present
+    system: true
+
+- name: "Create shared container runtime user {{ docker_user }}"
+  ansible.builtin.user:
+    createhome: false
+    name: "{{ docker_user }}"
+    shell: /usr/sbin/nologin
+    state: present
+    system: true
+    uid: "{{ docker_uid }}"
+    group: "{{ docker_group }}"
+    groups:
+      - "{{ docker_group }}"
+
+- name: Copy docker daemon configuration
+  ansible.builtin.template:
+    src: "{{ docker_config_template_file }}"
+    dest: "/etc/docker/daemon.json"
+    mode: "0644"
+  notify: Restart Docker
+
+- name: Ensure Docker service is enabled and running
+  ansible.builtin.systemd:
+    name: docker
+    enabled: true
+    state: started

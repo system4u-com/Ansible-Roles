@@ -1,0 +1,32 @@
+---
+argument_specs:
+  main:
+    short_description: Install and configure Docker
+    options:
+      docker_user:
+        type: str
+        default: docker4u
+
+      docker_uid:
+        type: int
+        default: 9000
+
+      docker_group:
+        type: str
+        default: docker4u
+
+      docker_gid:
+        type: int
+        default: 9000
+
+      docker_config_template_file:
+        type: str
+        default: daemon.j2
+
+      docker_apt_keyring:
+        type: path
+        default: /etc/apt/keyrings/docker.asc
+
+      docker_apt_cache_ttl:
+        type: int
+        default: 3600

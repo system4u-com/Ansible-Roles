@@ -1,0 +1,66 @@
+# system4u.infra
+
+Shared Ansible roles for infrastructure provisioning.
+
+## Requirements
+
+- Ansible Core >= 2.15
+- Ubuntu 22.04 or 24.04 for the `docker` role
+- A supported Docker architecture (for example `amd64` or `arm64`)
+
+Install the collection dependencies with:
+
+```bash
+ansible-galaxy collection install -r requirements.yml
+```
+
+## Usage
+
+After installing the collection, use the Docker role with its fully qualified
+collection name:
+
+```yaml
+---
+- name: Configure Docker hosts
+  hosts: docker_hosts
+  become: true
+  roles:
+    - role: system4u.infra.docker
+```
+
+## Docker role
+
+The role installs and configures Docker and creates a dedicated system user
+and group for consistent ownership of bind-mounted data across containers.
+The user is not granted access to the Docker CLI.
+
+### Main variables
+
+| Variable | Default | Description |
+| --- | --- | --- |
+| `docker_user` | `docker4u` | System user created by the role |
+| `docker_uid` | `9000` | UID assigned to the system user |
+| `docker_group` | `docker4u` | Primary system group created by the role |
+| `docker_gid` | `9000` | GID assigned to the system group |
+| `docker_apt_keyring` | `/etc/apt/keyrings/docker.asc` | Docker APT repository signing key |
+| `docker_apt_keyring` | `/etc/apt/keyrings/docker.asc` | Docker APT repository signing key |
+| `docker_apt_cache_ttl` | `3600` | APT cache validity in seconds |
+
+### Bind-mount ownership
+
+The role creates the host user and group with configurable numeric UID/GID.
+Containers can use the same numeric identity to keep ownership consistent for
+bind-mounted data:
+
+```yaml
+services:
+  app:
+    image: example/app
+    user: "9000:9000"
+    volumes:
+      - /srv/app-data:/var/lib/app
+```
+
+The container does not need to contain a user named `docker4u`; bind-mount
+permissions are based on the numeric UID/GID. The `docker4u` host user is not
+added to the `docker` group and therefore cannot use the Docker CLI by default.
