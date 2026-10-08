@@ -31,7 +31,12 @@
     that:
       - redis_cache_network_info.exists
       - redis_cache_network_info.network.Internal
-      - docker_redis_cache_container_name in redis_cache_network_info.network.Containers
+      - >-
+        docker_redis_cache_container_name in
+        (redis_cache_network_info.network.Containers
+        | dict2items
+        | map(attribute='value.Name')
+        | list)
 
 - name: Read Redis cache configuration
   ansible.builtin.slurp:
