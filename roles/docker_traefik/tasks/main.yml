@@ -1,0 +1,28 @@
+---
+- name: Validate Traefik configuration
+  ansible.builtin.import_tasks:
+    file: validate.yml
+
+- name: Configure Traefik files
+  ansible.builtin.import_tasks:
+    file: configure_files.yml
+
+- name: Create Docker socket proxy container
+  ansible.builtin.import_tasks:
+    file: create_docker_socket_proxy.yml
+
+- name: Create Whoami debug container
+  ansible.builtin.import_tasks:
+    file: create_whoami.yml
+  when: docker_traefik_enable_whoami | bool
+
+- name: Create Traefik container
+  ansible.builtin.import_tasks:
+    file: create_traefik.yml
+
+- name: Remove Whoami when disabled
+  ansible.builtin.import_tasks:
+    file: remove_whoami.yml
+  when:
+    - not docker_traefik_enable_whoami | bool
+    - docker_traefik_remove_whoami_when_disabled | bool

@@ -1,0 +1,75 @@
+---
+- name: Create Traefik egress network
+  community.docker.docker_network:
+    name: "{{ docker_traefik_egress_network }}"
+    state: present
+
+- name: Create Traefik backend networks
+  community.docker.docker_network:
+    name: "{{ item }}"
+    state: present
+  loop: "{{ docker_traefik_backend_networks }}"
+
+- name: Initialize Traefik container networks
+  ansible.builtin.set_fact:
+    docker_traefik_container_networks:
+      - name: "{{ docker_traefik_docker_socket_proxy_container_network }}"
+      - name: "{{ docker_traefik_egress_network }}"
+
+- name: Add backend networks to Traefik container networks
+  ansible.builtin.set_fact:
+    docker_traefik_container_networks: "{{ docker_traefik_container_networks + [{'name': item}] }}"
+  loop: "{{ docker_traefik_backend_networks }}"
+
+- name: Add Whoami network to Traefik container networks
+  ansible.builtin.set_fact:
+    docker_traefik_container_networks: "{{ docker_traefik_container_networks + [{'name': docker_traefik_whoami_network}] }}"
+  when: docker_traefik_enable_whoami | bool
+
+- name: Create Traefik container labels dictionary
+  ansible.builtin.include_role:
+    name: helper_merge_kv
+  vars:
+    helper_merge_kv_default: "{{ docker_traefik_container_labels_default }}"
+    helper_merge_kv_override: "{{ docker_traefik_container_labels_override | default([]) }}"
+    helper_merge_kv_output: docker_traefik_container_labels
+
+- name: Create Traefik container environment dictionary
+  ansible.builtin.include_role:
+    name: helper_merge_kv
+  vars:
+    helper_merge_kv_default: "{{ docker_traefik_container_environment_default }}"
+    helper_merge_kv_override: "{{ docker_traefik_container_environment_override | default([]) }}"
+    helper_merge_kv_output: docker_traefik_container_environment
+
+- name: Create Traefik container
+  community.docker.docker_container:
+    docker_host: unix:///var/run/docker.sock
+    detach: true
+    name: "{{ docker_traefik_container_name }}"
+    image: "{{ docker_traefik_container_image }}"
+    pull: true
+    recreate: true
+    container_default_behavior: "no_defaults"
+    networks_cli_compatible: true
+    networks: "{{ docker_traefik_container_networks }}"
+    published_ports: "{{ docker_traefik_container_port_mapping }}"
+    labels: "{{ docker_traefik_container_labels }}"
+    env: "{{ docker_traefik_container_environment }}"
+    no_log: true
+    read_only: true
+    security_opts:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    tmpfs:
+      - /tmp
+    volumes:
+      - "{{ docker_traefik_container_mount_traefik_yml }}:/traefik.yml:ro"
+      - "{{ docker_traefik_container_mount_acme_json }}:/acme.json"
+      - "{{ docker_traefik_dynamic_config_basepath }}:{{ docker_traefik_dynamic_config_container_path }}:ro"
+    user: "{{ docker_uid }}:{{ docker_gid }}"
+    restart_policy: unless-stopped
+    state: started

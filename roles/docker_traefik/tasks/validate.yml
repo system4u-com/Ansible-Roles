@@ -1,0 +1,42 @@
+---
+- name: Validate ACME email
+  ansible.builtin.assert:
+    that:
+      - docker_traefik_acme_email | length > 0
+    fail_msg: >-
+      docker_traefik_acme_email must be configured for ACME certificates.
+
+- name: Validate ACME CA server
+  ansible.builtin.assert:
+    that:
+      - docker_traefik_acme_ca_server is string
+    fail_msg: "docker_traefik_acme_ca_server must be a string."
+
+- name: Validate DNS challenge configuration
+  ansible.builtin.assert:
+    that:
+      - docker_traefik_acme_dns_provider | length > 0
+    fail_msg: >-
+      docker_traefik_acme_dns_provider must be configured when using the DNS
+      ACME challenge.
+  when: docker_traefik_acme_challenge_type == 'dns'
+
+- name: Validate backend network names
+  ansible.builtin.assert:
+    that:
+      - item is string
+      - item | length > 0
+    fail_msg: "Backend network names must be non-empty strings."
+  loop: "{{ docker_traefik_backend_networks }}"
+
+- name: Validate backend network uniqueness
+  ansible.builtin.assert:
+    that:
+      - docker_traefik_backend_networks | unique | length == docker_traefik_backend_networks | length
+    fail_msg: "Backend network names must be unique."
+
+- name: Validate log level
+  ansible.builtin.assert:
+    that:
+      - docker_traefik_log_level | upper in ['DEBUG', 'INFO', 'WARN', 'ERROR', 'PANIC']
+    fail_msg: "docker_traefik_log_level must be DEBUG, INFO, WARN, ERROR or PANIC."

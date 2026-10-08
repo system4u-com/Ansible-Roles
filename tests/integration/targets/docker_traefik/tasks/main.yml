@@ -1,0 +1,150 @@
+---
+- name: Set test variables
+  ansible.builtin.set_fact:
+    test_dynamic_source_path: "{{ remote_tmp_dir }}/traefik-source"
+    test_dynamic_target_path: "{{ remote_tmp_dir }}/traefik-dynamic"
+    test_whoami_network: "traefik-test-whoami-net"
+
+- name: Create test dynamic configuration source
+  ansible.builtin.file:
+    path: "{{ test_dynamic_source_path }}"
+    state: directory
+    mode: "0755"
+
+- name: Write test dynamic configuration template
+  ansible.builtin.copy:
+    dest: "{{ test_dynamic_source_path }}/host.yml.j2"
+    mode: "0644"
+    content: |
+      ---
+      http:
+        middlewares:
+          test-headers:
+            headers:
+              contentTypeNosniff: true
+
+- name: Include docker_traefik role with DNS challenge and Whoami enabled
+  ansible.builtin.include_role:
+    name: system4u.infra.docker_traefik
+  vars:
+    docker_traefik_acme_email: test@example.com
+    docker_traefik_acme_challenge_type: dns
+    docker_traefik_acme_ca_server: https://acme-staging-v02.api.letsencrypt.org/directory
+    docker_traefik_acme_dns_provider: cloudflare
+    docker_traefik_acme_dns_resolvers:
+      - "1.1.1.1:53"
+    docker_traefik_acme_dns_delay_before_check: 10
+    docker_traefik_container_environment_override:
+      - key: CF_DNS_API_TOKEN
+        value: test-token
+    docker_traefik_dynamic_config_source_path: "{{ test_dynamic_source_path }}"
+    docker_traefik_dynamic_config_basepath: "{{ test_dynamic_target_path }}"
+    docker_traefik_dynamic_config_cleanup: true
+    docker_traefik_backend_networks:
+      - test-backend-a
+      - test-backend-b
+    docker_traefik_enable_whoami: true
+    docker_traefik_whoami_network: "{{ test_whoami_network }}"
+    docker_traefik_whoami_container_labels_override:
+      - key: "traefik.enable"
+        value: "true"
+
+- name: Verify merged Traefik environment
+  ansible.builtin.assert:
+    that:
+      - docker_traefik_container_environment.TZ == system_timezone
+      - docker_traefik_container_environment.CF_DNS_API_TOKEN == "test-token"
+
+- name: Verify Whoami network label
+  ansible.builtin.assert:
+    that:
+      - docker_traefik_whoami_container_labels['traefik.enable'] == "true"
+      - docker_traefik_whoami_container_labels['traefik.docker.network'] == test_whoami_network
+
+- name: Verify rendered dynamic configuration
+  ansible.builtin.slurp:
+    src: "{{ test_dynamic_target_path }}/host.yml"
+  register: rendered_dynamic_config
+
+- name: Verify dynamic configuration content
+  ansible.builtin.assert:
+    that:
+      - "'test-headers' in (rendered_dynamic_config.content | b64decode)"
+
+- name: Verify static Traefik configuration
+  ansible.builtin.slurp:
+    src: "{{ docker_traefik_container_mount_traefik_yml }}"
+  register: rendered_static_config
+
+- name: Verify DNS challenge configuration
+  ansible.builtin.assert:
+    that:
+      - "'dnsChallenge:' in (rendered_static_config.content | b64decode)"
+      - "'caServer: \"https://acme-staging-v02.api.letsencrypt.org/directory\"' in (rendered_static_config.content | b64decode)"
+      - "'provider: \"cloudflare\"' in (rendered_static_config.content | b64decode)"
+      - "'delayBeforeCheck: 10' in (rendered_static_config.content | b64decode)"
+      - "'httpChallenge:' not in (rendered_static_config.content | b64decode)"
+
+- name: Verify static configuration providers
+  ansible.builtin.assert:
+    that:
+      - "'docker:' in (rendered_static_config.content | b64decode)"
+      - "'file:' in (rendered_static_config.content | b64decode)"
+      - "'/etc/traefik/dynamic' in (rendered_static_config.content | b64decode)"
+
+- name: Create stale dynamic configuration file
+  ansible.builtin.copy:
+    content: "---\nhttp: {}\n"
+    dest: "{{ test_dynamic_target_path }}/stale.yml"
+    mode: "0644"
+
+- name: Include docker_traefik role with Whoami disabled and cleanup enabled
+  ansible.builtin.include_role:
+    name: system4u.infra.docker_traefik
+  vars:
+    docker_traefik_acme_email: test@example.com
+    docker_traefik_acme_challenge_type: dns
+    docker_traefik_acme_ca_server: https://acme-staging-v02.api.letsencrypt.org/directory
+    docker_traefik_acme_dns_provider: cloudflare
+    docker_traefik_container_environment_override:
+      - key: CF_DNS_API_TOKEN
+        value: test-token
+    docker_traefik_dynamic_config_source_path: "{{ test_dynamic_source_path }}"
+    docker_traefik_dynamic_config_basepath: "{{ test_dynamic_target_path }}"
+    docker_traefik_dynamic_config_cleanup: true
+    docker_traefik_backend_networks:
+      - test-backend-a
+      - test-backend-b
+    docker_traefik_enable_whoami: false
+    docker_traefik_remove_whoami_when_disabled: true
+    docker_traefik_whoami_network: "{{ test_whoami_network }}"
+
+- name: Check stale dynamic configuration file
+  ansible.builtin.stat:
+    path: "{{ test_dynamic_target_path }}/stale.yml"
+  register: stale_dynamic_config
+
+- name: Verify stale dynamic configuration was removed
+  ansible.builtin.assert:
+    that:
+      - not stale_dynamic_config.stat.exists
+
+- name: Inspect Whoami container after cleanup
+  community.docker.docker_container_info:
+    name: whoami
+  register: whoami_container_info
+
+- name: Verify Whoami container was removed
+  ansible.builtin.assert:
+    that:
+      - not whoami_container_info.exists
+
+- name: Inspect Whoami network after cleanup
+  community.docker.docker_network_info:
+    name: "{{ test_whoami_network }}"
+  register: whoami_network_info
+
+- name: Verify Whoami network was removed
+  ansible.builtin.assert:
+    that:
+      - not whoami_network_info.exists

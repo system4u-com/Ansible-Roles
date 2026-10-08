@@ -1,0 +1,115 @@
+---
+- name: Create Traefik directory
+  ansible.builtin.file:
+    path: "{{ docker_traefik_container_data_basepath }}"
+    state: directory
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0755"
+
+- name: Create Traefik dynamic configuration directory
+  ansible.builtin.file:
+    path: "{{ docker_traefik_dynamic_config_basepath }}"
+    state: directory
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0755"
+
+- name: Create dynamic configuration management notice
+  ansible.builtin.copy:
+    dest: "{{ docker_traefik_dynamic_config_basepath }}/README.md"
+    content: |
+      # Managed by Ansible
+
+      This directory is managed by the `system4u.infra.docker_traefik` role.
+      Do not edit, add, or remove files manually here.
+
+      Dynamic configuration must be changed in the configured source directory:
+      `docker_traefik_dynamic_config_source_path`.
+      The role replaces the generated `.yml` and `.yaml` files on each run.
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0644"
+
+- name: Set dynamic configuration source path
+  ansible.builtin.set_fact:
+    docker_traefik_dynamic_config_effective_source_path: >-
+      {{ docker_traefik_dynamic_config_source_path
+      if docker_traefik_dynamic_config_source_path | length > 0
+      else role_path ~ '/templates/dynamic' }}
+
+- name: Check dynamic configuration source path
+  ansible.builtin.stat:
+    path: "{{ docker_traefik_dynamic_config_effective_source_path }}"
+  register: docker_traefik_dynamic_config_source_stat
+
+- name: Validate dynamic configuration source path
+  ansible.builtin.assert:
+    that:
+      - docker_traefik_dynamic_config_source_stat.stat.exists
+      - docker_traefik_dynamic_config_source_stat.stat.isdir
+    fail_msg: >-
+      Dynamic configuration source path must be an existing directory:
+      {{ docker_traefik_dynamic_config_effective_source_path }}.
+
+- name: Find dynamic configuration templates
+  ansible.builtin.set_fact:
+    docker_traefik_dynamic_config_source_files: >-
+      {{ query(
+        'ansible.builtin.fileglob',
+        docker_traefik_dynamic_config_effective_source_path ~ '/*'
+      ) | select('match', '.*\\.(yml|yaml)(\\.j2)?$') | list }}
+
+- name: Find deployed dynamic configuration files
+  ansible.builtin.find:
+    paths: "{{ docker_traefik_dynamic_config_basepath }}"
+    patterns:
+      - "*.yml"
+      - "*.yaml"
+      - "*.md"
+    file_type: file
+  register: docker_traefik_dynamic_config_deployed_files
+  when: docker_traefik_dynamic_config_cleanup | bool
+
+- name: Remove stale dynamic configuration files
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ docker_traefik_dynamic_config_deployed_files.files | default([]) }}"
+  when:
+    - docker_traefik_dynamic_config_cleanup | bool
+    - item.path | basename not in (
+        docker_traefik_dynamic_config_source_files
+        | map('basename')
+        | map('regex_replace', '\\.j2$', '')
+        | list
+        + ['README.md']
+      )
+
+- name: Deploy dynamic configuration templates
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: >-
+      {{ docker_traefik_dynamic_config_basepath }}/{{ item | basename
+      | regex_replace('\\.j2$', '') }}
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0644"
+  loop: "{{ docker_traefik_dynamic_config_source_files }}"
+
+- name: Copy traefik.yml
+  ansible.builtin.template:
+    src: "traefik.yml.j2"
+    dest: "{{ docker_traefik_container_mount_traefik_yml }}"
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0600"
+
+- name: Ensure acme.json exists
+  ansible.builtin.copy:
+    content: ""
+    dest: "{{ docker_traefik_container_mount_acme_json }}"
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0600"
+    force: false

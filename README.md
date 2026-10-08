@@ -64,3 +64,16 @@ services:
 The container does not need to contain a user named `docker4u`; bind-mount
 permissions are based on the numeric UID/GID. The `docker4u` host user is not
 added to the `docker` group and therefore cannot use the Docker CLI by default.
+
+## Docker Traefik role
+
+See [`roles/docker_traefik/README.md`](roles/docker_traefik/README.md) for
+backend network isolation, dashboard labels, and the optional Whoami debug
+container.
+
+## Helper role
+
+The `helper_merge_kv` role merges string key-value lists and supports
+last-write-wins overrides and key removal. See
+[`roles/helper_merge_kv/README.md`](roles/helper_merge_kv/README.md) for usage
+and variable documentation.

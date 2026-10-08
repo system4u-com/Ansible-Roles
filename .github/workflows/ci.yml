@@ -26,6 +26,27 @@ jobs:
       - name: Run ansible-lint
         run: ansible-lint .
 
+  sanity:
+    name: Ansible sanity tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository as a collection
+        uses: actions/checkout@v4
+        with:
+          path: ansible_collections/system4u/infra
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Ansible
+        run: python -m pip install ansible-core
+
+      - name: Run ansible-test sanity
+        working-directory: ansible_collections/system4u/infra
+        run: ansible-test sanity --docker
+
   build:
     name: Build collection
     runs-on: ubuntu-latest

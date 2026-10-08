@@ -1,0 +1,26 @@
+---
+# Reusable middleware definitions.
+# Attach them to routers explicitly with Docker labels, for example:
+# traefik.http.routers.app.middlewares=security-chain@file
+http:
+  middlewares:
+    security-headers:
+      headers:
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: strict-origin-when-cross-origin
+        permissionsPolicy: >-
+          camera=(), microphone=(), geolocation=()
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
+
+    compress:
+      compress: {}
+
+    security-chain:
+      chain:
+        middlewares:
+          - security-headers
+          - compress

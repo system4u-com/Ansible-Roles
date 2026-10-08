@@ -1,0 +1,10 @@
+---
+- name: Remove Whoami container
+  community.docker.docker_container:
+    name: "{{ docker_traefik_whoami_container_name }}"
+    state: absent
+
+- name: Remove Whoami network
+  community.docker.docker_network:
+    name: "{{ docker_traefik_whoami_network }}"
+    state: absent

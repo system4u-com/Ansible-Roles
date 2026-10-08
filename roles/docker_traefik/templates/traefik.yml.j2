@@ -1,0 +1,61 @@
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: {{ docker_traefik_log_level }}
+
+api:
+  dashboard: {{ docker_traefik_enable_dashboard | bool | lower }}
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: le
+  websecure8443:
+    address: ":8443"
+    http:
+      tls:
+        certResolver: le
+
+certificatesResolvers:
+  le:
+    acme:
+      email: "{{ docker_traefik_acme_email }}"
+{% if docker_traefik_acme_ca_server | length > 0 %}
+      caServer: "{{ docker_traefik_acme_ca_server }}"
+{% endif %}
+      storage: /acme.json
+{% if docker_traefik_acme_challenge_type == 'dns' %}
+      dnsChallenge:
+        provider: "{{ docker_traefik_acme_dns_provider }}"
+{% if docker_traefik_acme_dns_resolvers | length > 0 %}
+        resolvers:
+{% for resolver in docker_traefik_acme_dns_resolvers %}
+          - "{{ resolver }}"
+{% endfor %}
+{% endif %}
+{% if docker_traefik_acme_dns_delay_before_check | int > 0 %}
+        delayBeforeCheck: {{ docker_traefik_acme_dns_delay_before_check | int }}
+{% endif %}
+{% else %}
+      httpChallenge:
+        entryPoint: web
+{% endif %}
+
+providers:
+  docker:
+    endpoint: 'tcp://{{ docker_traefik_docker_socket_proxy_container_name }}:2375'
+    exposedByDefault: false
+  file:
+    directory: "{{ docker_traefik_dynamic_config_container_path }}"
+    watch: {{ docker_traefik_dynamic_config_watch | bool | lower }}

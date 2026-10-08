@@ -1,0 +1,139 @@
+---
+argument_specs:
+  main:
+    short_description: Deploy Traefik with a Docker socket proxy
+    options:
+      docker_traefik_acme_challenge_type:
+        type: str
+        choices:
+          - http
+          - dns
+        default: http
+
+      docker_traefik_acme_ca_server:
+        type: str
+        default: ""
+
+      docker_traefik_acme_dns_provider:
+        type: str
+        default: ""
+
+      docker_traefik_acme_dns_resolvers:
+        type: list
+        elements: str
+        default: []
+
+      docker_traefik_acme_dns_delay_before_check:
+        type: int
+        default: 0
+
+      docker_traefik_container_environment_default:
+        type: list
+        elements: dict
+        default:
+          - key: TZ
+            value: "{{ system_timezone }}"
+
+      docker_traefik_container_environment_override:
+        type: list
+        elements: dict
+        default: []
+
+      docker_traefik_enable_dashboard:
+        type: bool
+        default: false
+
+      docker_traefik_dashboard_proxy_fqdn:
+        type: str
+        default: "{{ inventory_hostname }}"
+
+      docker_traefik_acme_email:
+        type: str
+        required: true
+        description:
+          - Email address used by the ACME certificate resolver.
+
+      docker_traefik_docker_socket_proxy_container_name:
+        type: str
+        default: traefik-docker-socket-proxy
+
+      docker_traefik_docker_socket_proxy_container_image:
+        type: str
+        default: linuxserver/socket-proxy:3.2.14
+
+      docker_traefik_docker_socket_proxy_container_network:
+        type: str
+        default: traefik-docker-socket-proxy-net
+
+      docker_traefik_egress_network:
+        type: str
+        default: traefik-egress
+
+      docker_traefik_backend_networks:
+        type: list
+        elements: str
+        default: []
+
+      docker_traefik_log_level:
+        type: str
+        default: INFO
+
+      docker_traefik_container_data_basepath:
+        type: path
+        default: "{{ docker_data_basepath }}/traefik"
+
+      docker_traefik_dynamic_config_source_path:
+        type: path
+        default: ""
+
+      docker_traefik_dynamic_config_basepath:
+        type: path
+        default: "{{ docker_traefik_container_data_basepath }}/dynamic"
+
+      docker_traefik_dynamic_config_container_path:
+        type: path
+        default: /etc/traefik/dynamic
+
+      docker_traefik_dynamic_config_watch:
+        type: bool
+        default: true
+
+      docker_traefik_dynamic_config_cleanup:
+        type: bool
+        default: true
+
+      docker_traefik_container_name:
+        type: str
+        default: traefik
+
+      docker_traefik_container_image:
+        type: str
+        default: traefik:v3.6.10
+
+      docker_traefik_container_port_mapping:
+        type: list
+        elements: str
+        default:
+          - "80:80"
+          - "443:443"
+          - "8443:8443"
+
+      docker_traefik_enable_whoami:
+        type: bool
+        default: false
+
+      docker_traefik_remove_whoami_when_disabled:
+        type: bool
+        default: false
+
+      docker_traefik_whoami_network:
+        type: str
+        default: traefik-whoami-net
+
+      docker_traefik_whoami_container_name:
+        type: str
+        default: whoami
+
+      docker_traefik_whoami_container_image:
+        type: str
+        default: traefik/whoami:latest

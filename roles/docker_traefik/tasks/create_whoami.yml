@@ -1,0 +1,28 @@
+---
+- name: Create Whoami network
+  community.docker.docker_network:
+    name: "{{ docker_traefik_whoami_network }}"
+    state: present
+
+- name: Create Whoami container labels dictionary
+  ansible.builtin.include_role:
+    name: helper_merge_kv
+  vars:
+    helper_merge_kv_default: "{{ docker_traefik_whoami_container_labels_default }}"
+    helper_merge_kv_override: "{{ docker_traefik_whoami_container_labels_override | default([]) }}"
+    helper_merge_kv_output: docker_traefik_whoami_container_labels
+
+- name: Create Whoami container
+  community.docker.docker_container:
+    docker_host: unix:///var/run/docker.sock
+    detach: true
+    name: "{{ docker_traefik_whoami_container_name }}"
+    image: "{{ docker_traefik_whoami_container_image }}"
+    pull: true
+    recreate: true
+    container_default_behavior: "no_defaults"
+    networks:
+      - name: "{{ docker_traefik_whoami_network }}"
+    labels: "{{ docker_traefik_whoami_container_labels }}"
+    restart_policy: unless-stopped
+    state: started

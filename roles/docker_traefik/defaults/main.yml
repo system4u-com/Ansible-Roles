@@ -1,0 +1,77 @@
+---
+# Docker Socket Proxy.
+docker_traefik_docker_socket_proxy_container_name: "traefik-docker-socket-proxy"
+docker_traefik_docker_socket_proxy_container_image: "linuxserver/socket-proxy:3.2.14"
+docker_traefik_docker_socket_proxy_container_network: "traefik-docker-socket-proxy-net"
+
+# Traefik outbound network.
+docker_traefik_egress_network: "traefik-egress"
+
+# Backend network isolation.
+# Each backend gets its own network. Traefik is attached to every network in
+# this list, while backend containers should be attached to only their own.
+docker_traefik_backend_networks: []
+
+# Traefik container.
+docker_traefik_container_name: "traefik"
+docker_traefik_container_image: "traefik:v3.6.10"
+docker_traefik_log_level: "INFO"
+docker_traefik_container_port_mapping:
+  - "80:80"
+  - "443:443"
+  - "8443:8443"
+
+# Traefik container environment.
+docker_traefik_container_environment_default:
+  - {key: "TZ", value: "{{ system_timezone }}"}
+docker_traefik_container_environment_override: []
+
+# Traefik persistent configuration.
+docker_traefik_container_data_basepath: "{{ docker_data_basepath }}/traefik"
+docker_traefik_container_mount_traefik_yml: >-
+  {{ docker_traefik_container_data_basepath }}/traefik.yml
+docker_traefik_container_mount_acme_json: >-
+  {{ docker_traefik_container_data_basepath }}/acme.json
+docker_traefik_dynamic_config_source_path: ""
+docker_traefik_dynamic_config_basepath: >-
+  {{ docker_traefik_container_data_basepath }}/dynamic
+docker_traefik_dynamic_config_container_path: "/etc/traefik/dynamic"
+docker_traefik_dynamic_config_watch: true
+# When true, remove stale dynamic configuration files in the target directory.
+docker_traefik_dynamic_config_cleanup: true
+
+# ACME certificate resolver.
+docker_traefik_acme_email: "{{ ssl_acme_email }}"
+docker_traefik_acme_challenge_type: "http"
+# Empty uses the CA provider default. Set the Let's Encrypt staging directory
+# while testing DNS validation to avoid production rate limits.
+docker_traefik_acme_ca_server: ""
+docker_traefik_acme_dns_provider: ""
+docker_traefik_acme_dns_resolvers: []
+docker_traefik_acme_dns_delay_before_check: 0
+
+# Traefik dashboard.
+docker_traefik_enable_dashboard: false
+docker_traefik_dashboard_proxy_fqdn: "{{ inventory_hostname }}"
+
+# Traefik container labels. Dashboard is disabled by default.
+docker_traefik_container_labels_default:
+  - {key: "traefik.enable", value: "false"}
+docker_traefik_container_labels_override: []
+
+# Optional stateless debug container for testing Traefik routing.
+# Disabled by default. It uses its own isolated network.
+docker_traefik_enable_whoami: false
+docker_traefik_remove_whoami_when_disabled: false
+docker_traefik_whoami_network: "traefik-whoami-net"
+docker_traefik_whoami_container_name: "whoami"
+docker_traefik_whoami_container_image: "traefik/whoami:latest"
+
+# Whoami routing is disabled by default.
+docker_traefik_whoami_container_labels_default:
+  - {key: "traefik.enable", value: "false"}
+  - {
+    key: "traefik.docker.network",
+    value: "{{ docker_traefik_whoami_network }}"
+  }
+docker_traefik_whoami_container_labels_override: []

@@ -1,0 +1,58 @@
+- name: Create Docker Socket Proxy network
+  community.docker.docker_network:
+    name: "{{ docker_traefik_docker_socket_proxy_container_network }}"
+    internal: true
+    state: present
+
+- name: Create Docker Socket Proxy container
+  community.docker.docker_container:
+    docker_host: unix:///var/run/docker.sock
+    detach: true
+    name: "{{ docker_traefik_docker_socket_proxy_container_name }}"
+    image: "{{ docker_traefik_docker_socket_proxy_container_image }}"
+    pull: true
+    container_default_behavior: "no_defaults"
+    networks_cli_compatible: true
+    networks:
+      - name: "{{ docker_traefik_docker_socket_proxy_container_network }}"
+    env:
+      ALLOW_START: "0" # optional
+      ALLOW_STOP: "0" # optional
+      ALLOW_RESTARTS: "0" # optional
+      AUTH: "0" # optional
+      BUILD: "0" # optional
+      COMMIT: "0" # optional
+      CONFIGS: "0" # optional
+      CONTAINERS: "1" # optional
+      DISABLE_IPV6: "0" # optional
+      DISTRIBUTION: "0" # optional
+      EVENTS: "1" # optional
+      EXEC: "0" # optional
+      IMAGES: "0" # optional
+      INFO: "0" # optional
+      NETWORKS: "0" # optional
+      NODES: "0" # optional
+      PING: "1" # optional
+      POST: "0" # optional
+      PLUGINS: "0" # optional
+      SECRETS: "0" # optional
+      SERVICES: "0" # optional
+      SESSION: "0" # optional
+      SWARM: "0" # optional
+      SYSTEM: "0" # optional
+      TASKS: "0" # optional
+      VERSION: "1" # optional
+      VOLUMES: "0" # optional
+    security_opts:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs:
+      - "/run"
+    read_only: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    comparisons:
+      "*": strict
+    restart_policy: unless-stopped
+    state: started
