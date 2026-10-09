@@ -1,0 +1,44 @@
+---
+- name: Validate supported operating system
+  ansible.builtin.assert:
+    that:
+      - ansible_facts.distribution == 'Ubuntu'
+    fail_msg: "The system_updates role supports Ubuntu only."
+
+- name: Update APT package cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: "{{ system_updates_cache_valid_time }}"
+  when:
+    - system_updates_update_cache | bool or system_updates_upgrade | bool
+
+- name: Upgrade Ubuntu packages safely
+  ansible.builtin.apt:
+    upgrade: safe
+  when:
+    - system_updates_upgrade | bool
+    - system_updates_upgrade_type == 'safe'
+
+- name: Upgrade all Ubuntu packages
+  ansible.builtin.apt:
+    upgrade: full
+  when:
+    - system_updates_upgrade | bool
+    - system_updates_upgrade_type == 'full'
+
+- name: Remove unused APT packages
+  ansible.builtin.apt:
+    autoremove: true
+  when: system_updates_autoremove | bool
+
+- name: Check for reboot-required marker
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+  register: system_updates_reboot_required
+
+- name: Reboot host when requested and required
+  ansible.builtin.reboot:
+    reboot_timeout: "{{ system_updates_reboot_timeout }}"
+  when:
+    - system_updates_reboot | bool
+    - system_updates_reboot_required.stat.exists

@@ -65,6 +65,28 @@ The container does not need to contain a user named `docker4u`; bind-mount
 permissions are based on the numeric UID/GID. The `docker4u` host user is not
 added to the `docker` group and therefore cannot use the Docker CLI by default.
 
+## System base role
+
+See [`roles/system_base/README.md`](roles/system_base/README.md) for reusable
+Ubuntu host preparation.
+
+## System updates role
+
+See [`roles/system_updates/README.md`](roles/system_updates/README.md) for
+explicit package updates and optional reboot handling.
+
+Recommended host preparation order:
+
+```yaml
+roles:
+  - role: system4u.infra.system_base
+  - role: system4u.infra.system_updates
+  - role: system4u.infra.docker
+```
+
+See [`roles/system_base/README.md`](roles/system_base/README.md) for reusable
+Ubuntu host preparation.
+
 ## Docker maintenance role
 
 See [`roles/docker_maintenance/README.md`](roles/docker_maintenance/README.md)

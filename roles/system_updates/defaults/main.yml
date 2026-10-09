@@ -1,0 +1,13 @@
+---
+# Refresh package metadata even when upgrades are disabled.
+system_updates_update_cache: true
+system_updates_cache_valid_time: 3600
+
+# Package upgrades are opt-in.
+system_updates_upgrade: false
+system_updates_upgrade_type: safe
+system_updates_autoremove: false
+
+# Reboot is always opt-in.
+system_updates_reboot: false
+system_updates_reboot_timeout: 600

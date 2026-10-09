@@ -25,3 +25,8 @@ This project follows `Semantic Versioning <https://semver.org/>`_.
 - Add opt-in stale instance lifecycle cleanup for MCP server and agents runtime
   roles.
 - Add the ``docker_maintenance`` role for explicit Docker resource pruning.
+- Add the ``system_base`` role for reusable Ubuntu host preparation.
+- Add the ``system_updates`` role for explicit package updates and optional
+  reboot handling.
+- Add Ubuntu host bootstrap with Python detection, locale, NTP, troubleshooting
+  tools, and emergency disk reserve support.

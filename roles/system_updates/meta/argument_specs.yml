@@ -1,0 +1,35 @@
+---
+argument_specs:
+  main:
+    short_description: Update Ubuntu packages
+    options:
+      system_updates_update_cache:
+        type: bool
+        default: true
+
+      system_updates_cache_valid_time:
+        type: int
+        default: 3600
+
+      system_updates_upgrade:
+        type: bool
+        default: false
+
+      system_updates_upgrade_type:
+        type: str
+        choices:
+          - safe
+          - full
+        default: safe
+
+      system_updates_autoremove:
+        type: bool
+        default: false
+
+      system_updates_reboot:
+        type: bool
+        default: false
+
+      system_updates_reboot_timeout:
+        type: int
+        default: 600
