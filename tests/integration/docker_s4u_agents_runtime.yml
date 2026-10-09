@@ -1,0 +1,114 @@
+---
+- name: Test docker_s4u_agents_runtime
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    docker_user: "{{ lookup('ansible.builtin.pipe', 'id -un') }}"
+    docker_group: "{{ lookup('ansible.builtin.pipe', 'id -gn') }}"
+    docker_uid: "{{ lookup('ansible.builtin.pipe', 'id -u') | int }}"
+    docker_gid: "{{ lookup('ansible.builtin.pipe', 'id -g') | int }}"
+    docker_data_basepath: /tmp/system4u-agents-runtime-ci
+    system_timezone: UTC
+    docker_s4u_agents_runtime_instances:
+      - name: test
+        image: traefik/whoami:latest
+        config_source_path: "{{ playbook_dir }}/fixtures/agents-runtime-config"
+        dependency_networks: []
+        environment:
+          - key: TEST_VALUE
+            value: test
+
+  tasks:
+    - name: Create agentgateway-owned frontend ingress network
+      community.docker.docker_network:
+        name: s4u-agents-runtime-test-ingress-net
+        internal: true
+        state: present
+
+    - name: Run agents runtime role test
+      block:
+        - name: Include agents runtime role
+          ansible.builtin.include_role:
+            name: docker_s4u_agents_runtime
+
+        - name: Inspect agents runtime container
+          community.docker.docker_container_info:
+            name: s4u-agents-runtime-test
+          register: agents_runtime_container_info
+          until:
+            - agents_runtime_container_info.exists
+            - agents_runtime_container_info.container.State.Status == 'running'
+          retries: 15
+          delay: 2
+
+        - name: Inspect agents runtime frontend ingress network
+          community.docker.docker_network_info:
+            name: s4u-agents-runtime-test-ingress-net
+          register: agents_runtime_ingress_network_info
+
+        - name: Inspect agents runtime egress network
+          community.docker.docker_network_info:
+            name: s4u-agents-runtime-test-egress-net
+          register: agents_runtime_egress_network_info
+
+        - name: Verify agents runtime container
+          ansible.builtin.assert:
+            that:
+              - agents_runtime_container_info.container.Config.User == docker_uid ~ ':' ~ docker_gid
+              - agents_runtime_container_info.container.HostConfig.PortBindings == {}
+              - agents_runtime_container_info.container.Config.Env | select('equalto', 'TEST_VALUE=test') | list | length == 1
+              - agents_runtime_container_info.container.HostConfig.ReadonlyRootfs
+              - agents_runtime_container_info.container.NetworkSettings.Networks | length == 2
+              - >-
+                's4u-agents-runtime-test-ingress-net' in
+                agents_runtime_container_info.container.NetworkSettings.Networks
+              - >-
+                's4u-agents-runtime-test-egress-net' in
+                agents_runtime_container_info.container.NetworkSettings.Networks
+
+        - name: Verify agents runtime networks
+          ansible.builtin.assert:
+            that:
+              - agents_runtime_ingress_network_info.network.Internal
+              - agents_runtime_egress_network_info.exists
+              - not agents_runtime_egress_network_info.network.Internal
+
+        - name: Verify agents runtime configuration copy
+          ansible.builtin.stat:
+            path: "{{ docker_data_basepath }}/s4u-agents-runtime-test/config/config.yaml"
+          register: agents_runtime_config_file
+
+        - name: Verify agents runtime configuration exists
+          ansible.builtin.assert:
+            that:
+              - agents_runtime_config_file.stat.exists
+
+        - name: Verify agents runtime config mount is read-only
+          ansible.builtin.assert:
+            that:
+              - >-
+                agents_runtime_container_info.container.Mounts
+                | selectattr('Destination', 'equalto', '/app/config')
+                | map(attribute='RW')
+                | first | default(true) == false
+      always:
+        - name: Remove agents runtime test container
+          community.docker.docker_container:
+            name: s4u-agents-runtime-test
+            state: absent
+
+        - name: Remove agents runtime egress network
+          community.docker.docker_network:
+            name: s4u-agents-runtime-test-egress-net
+            state: absent
+
+        - name: Remove agents runtime frontend ingress network
+          community.docker.docker_network:
+            name: s4u-agents-runtime-test-ingress-net
+            state: absent
+
+        - name: Remove agents runtime test files
+          ansible.builtin.file:
+            path: "{{ docker_data_basepath }}"
+            state: absent

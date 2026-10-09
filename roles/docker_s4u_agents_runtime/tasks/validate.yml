@@ -1,0 +1,53 @@
+---
+- name: Validate agents runtime instance values
+  ansible.builtin.assert:
+    that:
+      - docker_s4u_agents_runtime_instance.name is string
+      - docker_s4u_agents_runtime_instance.name is match('^[a-z0-9][a-z0-9-]*[a-z0-9]$')
+      - docker_s4u_agents_runtime_instance.image is string
+      - docker_s4u_agents_runtime_instance.image | length > 0
+      - docker_s4u_agents_runtime_instance.config_source_path is string
+      - docker_s4u_agents_runtime_instance.config_source_path | length > 0
+    fail_msg: "The agents runtime instance is missing a required value."
+
+- name: Set derived agents runtime container name
+  ansible.builtin.set_fact:
+    docker_s4u_agents_runtime_container_name: >-
+      {{ docker_s4u_agents_runtime_container_name_prefix
+      ~ docker_s4u_agents_runtime_instance.name }}
+
+- name: Set derived agents runtime network names
+  ansible.builtin.set_fact:
+    docker_s4u_agents_runtime_ingress_network: >-
+      {{ docker_s4u_agents_runtime_container_name
+      ~ docker_s4u_agents_runtime_ingress_network_suffix }}
+    docker_s4u_agents_runtime_egress_network: >-
+      {{ docker_s4u_agents_runtime_container_name
+      ~ docker_s4u_agents_runtime_egress_network_suffix }}
+
+- name: Check agents runtime frontend ingress network
+  community.docker.docker_network_info:
+    name: "{{ docker_s4u_agents_runtime_ingress_network }}"
+  register: docker_s4u_agents_runtime_ingress_network_info
+
+- name: Validate agents runtime frontend ingress network
+  ansible.builtin.assert:
+    that:
+      - docker_s4u_agents_runtime_ingress_network_info.exists
+      - docker_s4u_agents_runtime_ingress_network_info.network.Internal
+    fail_msg: >-
+      The derived agents runtime frontend ingress network must already exist and
+      be internal. Create it through docker_agentgateway_downstream_networks.
+
+- name: Check agents runtime dependency networks
+  community.docker.docker_network_info:
+    name: "{{ item }}"
+  loop: "{{ docker_s4u_agents_runtime_instance.dependency_networks | default([]) }}"
+  register: docker_s4u_agents_runtime_dependency_network_info
+
+- name: Validate agents runtime dependency networks
+  ansible.builtin.assert:
+    that:
+      - item.exists
+    fail_msg: "Every agents runtime dependency network must already exist."
+  loop: "{{ docker_s4u_agents_runtime_dependency_network_info.results }}"

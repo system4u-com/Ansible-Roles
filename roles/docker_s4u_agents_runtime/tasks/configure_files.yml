@@ -1,0 +1,82 @@
+---
+- name: Create agents runtime data directory
+  ansible.builtin.file:
+    path: "{{ docker_data_basepath }}/{{ docker_s4u_agents_runtime_container_name }}"
+    state: directory
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0750"
+
+- name: Create agents runtime configuration directory
+  ansible.builtin.file:
+    path: >-
+      {{ docker_data_basepath }}/{{ docker_s4u_agents_runtime_container_name }}/config
+    state: directory
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0750"
+
+- name: Check agents runtime configuration source
+  ansible.builtin.stat:
+    path: "{{ docker_s4u_agents_runtime_instance.config_source_path }}"
+  delegate_to: localhost
+  become: false
+  register: docker_s4u_agents_runtime_config_source_stat
+
+- name: Validate agents runtime configuration source
+  ansible.builtin.assert:
+    that:
+      - docker_s4u_agents_runtime_config_source_stat.stat.exists
+      - docker_s4u_agents_runtime_config_source_stat.stat.isdir
+    fail_msg: "Agents runtime configuration source must be an existing directory."
+
+- name: Find agents runtime configuration source files
+  ansible.builtin.set_fact:
+    docker_s4u_agents_runtime_config_source_files: >-
+      {{ query(
+        'ansible.builtin.fileglob',
+        docker_s4u_agents_runtime_instance.config_source_path ~ '/*'
+      ) | map('basename') | list }}
+
+- name: Find deployed agents runtime configuration files
+  ansible.builtin.find:
+    paths: >-
+      {{ docker_data_basepath }}/{{ docker_s4u_agents_runtime_container_name }}/config
+    file_type: file
+  register: docker_s4u_agents_runtime_config_deployed_files
+  when: docker_s4u_agents_runtime_config_cleanup | bool
+
+- name: Remove stale agents runtime configuration files
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ docker_s4u_agents_runtime_config_deployed_files.files | default([]) }}"
+  when:
+    - docker_s4u_agents_runtime_config_cleanup | bool
+    - item.path | basename != 'README.md'
+    - item.path | basename not in docker_s4u_agents_runtime_config_source_files
+
+- name: Create agents runtime configuration management notice
+  ansible.builtin.copy:
+    dest: >-
+      {{ docker_data_basepath }}/{{ docker_s4u_agents_runtime_container_name }}/config/README.md
+    content: |
+      # Managed by Ansible
+
+      This directory is managed by the
+      `system4u.infra.docker_s4u_agents_runtime` role.
+      Do not edit, add, or remove files manually here.
+      Change the source configured by `config_source_path` in the deployment project.
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0644"
+
+- name: Deploy agents runtime configuration directory
+  ansible.builtin.copy:
+    src: "{{ docker_s4u_agents_runtime_instance.config_source_path }}/"
+    dest: >-
+      {{ docker_data_basepath }}/{{ docker_s4u_agents_runtime_container_name }}/config/
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0640"
+    directory_mode: "0750"

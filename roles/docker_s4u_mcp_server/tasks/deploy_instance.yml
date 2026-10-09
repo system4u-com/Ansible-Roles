@@ -1,0 +1,16 @@
+---
+- name: Validate MCP server instance
+  ansible.builtin.import_tasks:
+    file: validate.yml
+
+- name: Configure MCP server files
+  ansible.builtin.import_tasks:
+    file: configure_files.yml
+
+- name: Create MCP server network
+  ansible.builtin.import_tasks:
+    file: create_networks.yml
+
+- name: Create MCP server container
+  ansible.builtin.import_tasks:
+    file: create_mcp_server.yml

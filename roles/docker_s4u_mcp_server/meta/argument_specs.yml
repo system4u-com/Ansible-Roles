@@ -1,0 +1,53 @@
+---
+argument_specs:
+  main:
+    short_description: Deploy a System4u MCP server container
+    options:
+      docker_s4u_mcp_server_instances:
+        type: list
+        required: true
+        elements: dict
+        options:
+          name:
+            type: str
+            required: true
+          image:
+            type: str
+            required: true
+          dependency_networks:
+            type: list
+            elements: str
+            default: []
+          config_source_path:
+            type: path
+            required: true
+          environment:
+            type: list
+            elements: dict
+            default: []
+          labels:
+            type: list
+            elements: dict
+            default: []
+          command:
+            type: list
+            elements: str
+            default: []
+          volumes:
+            type: list
+            elements: str
+            default: []
+
+      docker_s4u_mcp_server_config_container_path:
+        type: path
+        default: /app/config
+
+      docker_s4u_mcp_server_config_cleanup:
+        type: bool
+        default: true
+
+      docker_s4u_mcp_server_tmpfs:
+        type: list
+        elements: str
+        default:
+          - "/tmp:rw,noexec,nosuid,nodev,size=32m"

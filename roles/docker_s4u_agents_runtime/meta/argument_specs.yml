@@ -1,0 +1,53 @@
+---
+argument_specs:
+  main:
+    short_description: Deploy the System4u agents runtime container
+    options:
+      docker_s4u_agents_runtime_instances:
+        type: list
+        required: true
+        elements: dict
+        options:
+          name:
+            type: str
+            required: true
+          image:
+            type: str
+            required: true
+          dependency_networks:
+            type: list
+            elements: str
+            default: []
+          config_source_path:
+            type: path
+            required: true
+          environment:
+            type: list
+            elements: dict
+            default: []
+          labels:
+            type: list
+            elements: dict
+            default: []
+          command:
+            type: list
+            elements: str
+            default: []
+          volumes:
+            type: list
+            elements: str
+            default: []
+
+      docker_s4u_agents_runtime_config_container_path:
+        type: path
+        default: /app/config
+
+      docker_s4u_agents_runtime_config_cleanup:
+        type: bool
+        default: true
+
+      docker_s4u_agents_runtime_tmpfs:
+        type: list
+        elements: str
+        default:
+          - "/tmp:rw,noexec,nosuid,nodev,size=32m"

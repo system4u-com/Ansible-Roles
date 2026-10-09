@@ -77,6 +77,18 @@ See [`roles/docker_agentgateway/README.md`](roles/docker_agentgateway/README.md)
 for Traefik integration and isolated ingress, egress, and downstream/MCP
 networks.
 
+## System4u MCP server role
+
+See [`roles/docker_s4u_mcp_server/README.md`](roles/docker_s4u_mcp_server/README.md)
+for plural instance deployment, derived resource names, isolated networks, and
+deployment-managed configuration.
+
+## System4u agents runtime role
+
+See [`roles/docker_s4u_agents_runtime/README.md`](roles/docker_s4u_agents_runtime/README.md)
+for plural instance deployment, derived resource names, isolated networks, and
+deployment-managed configuration.
+
 ## Redis cache role
 
 See [`roles/docker_redis_cache/README.md`](roles/docker_redis_cache/README.md) for

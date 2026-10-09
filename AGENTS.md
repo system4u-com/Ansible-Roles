@@ -74,12 +74,14 @@ orchestration layer and use descriptive action-oriented names such as
   - Each routed backend should use a dedicated ingress network and, when
     outbound connectivity is required, a dedicated egress network. For example:
     `agentgateway-a-ingress-net` and `agentgateway-a-egress-net`.
-  - The Traefik role owns and creates declared backend ingress networks as
-    `internal: true`. Backend service roles must not create or remove their
-    ingress network; they only attach their container to the declared network.
-  - A backend ingress network is shared only by Traefik and that backend. The
-    backend service role owns its dedicated egress network, which must not be
-    shared with other backends.
+  - The Traefik role owns and creates declared agentgateway ingress networks
+    as `internal: true`. The agentgateway role owns and creates declared
+    downstream frontend ingress networks as `internal: true`.
+  - Backend service roles must not create or remove their frontend ingress
+    network; they only attach their container to the declared network.
+  - An agentgateway frontend ingress network is shared only by the
+    agentgateway instance and that backend. The backend service role owns its
+    dedicated egress network, which must not be shared with other backends.
   - Traefik may join each backend ingress network, but must not join backend
     egress networks. Backend containers must not join another backend's
     networks.

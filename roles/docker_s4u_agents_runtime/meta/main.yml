@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  author: System4u.com
+  description: Deploy the System4u agents runtime container.
+  license: MIT
+  min_ansible_version: "2.15"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+
+dependencies: []

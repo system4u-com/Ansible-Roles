@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  author: System4u.com
+  description: Deploy a System4u MCP server container.
+  license: MIT
+  min_ansible_version: "2.15"
+
+  platforms:
+    - name: Ubuntu
+      versions:
+        - jammy
+        - noble
+
+dependencies: []

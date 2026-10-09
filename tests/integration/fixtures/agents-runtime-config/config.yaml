@@ -1,0 +1,4 @@
+---
+# Runtime configuration fixture for the agents runtime role.
+runtime:
+  name: test

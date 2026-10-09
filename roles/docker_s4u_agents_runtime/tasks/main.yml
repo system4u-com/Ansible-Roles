@@ -1,0 +1,16 @@
+---
+- name: Validate agents runtime instance names
+  ansible.builtin.assert:
+    that:
+      - docker_s4u_agents_runtime_instances | map(attribute='name') | list | unique | length == docker_s4u_agents_runtime_instances | length
+    fail_msg: "Agents runtime instance names must be unique."
+
+- name: Deploy agents runtime instances
+  ansible.builtin.include_tasks:
+    file: deploy_instance.yml
+  loop: "{{ docker_s4u_agents_runtime_instances }}"
+  loop_control:
+    loop_var: docker_s4u_agents_runtime_instance_item
+    label: "{{ docker_s4u_agents_runtime_instance_item.name }}"
+  vars:
+    docker_s4u_agents_runtime_instance: "{{ docker_s4u_agents_runtime_instance_item }}"

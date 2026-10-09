@@ -1,0 +1,5 @@
+---
+- name: Create MCP server egress network
+  community.docker.docker_network:
+    name: "{{ docker_s4u_mcp_server_egress_network }}"
+    state: present

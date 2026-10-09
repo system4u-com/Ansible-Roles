@@ -1,0 +1,4 @@
+---
+# Runtime configuration fixture for the MCP server role.
+service:
+  name: test

@@ -1,0 +1,83 @@
+---
+- name: Create MCP server data directory
+  ansible.builtin.file:
+    path: "{{ docker_data_basepath }}/{{ docker_s4u_mcp_server_container_name }}"
+    state: directory
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0750"
+
+- name: Create MCP server configuration directory
+  ansible.builtin.file:
+    path: >-
+      {{ docker_data_basepath }}/{{ docker_s4u_mcp_server_container_name }}/config
+    state: directory
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0750"
+
+- name: Check MCP server configuration source
+  ansible.builtin.stat:
+    path: "{{ docker_s4u_mcp_server_instance.config_source_path }}"
+  delegate_to: localhost
+  become: false
+  register: docker_s4u_mcp_server_config_source_stat
+
+- name: Validate MCP server configuration source
+  ansible.builtin.assert:
+    that:
+      - docker_s4u_mcp_server_config_source_stat.stat.exists
+      - docker_s4u_mcp_server_config_source_stat.stat.isdir
+    fail_msg: >-
+      MCP server configuration source must be an existing directory.
+
+- name: Find MCP server configuration source files
+  ansible.builtin.set_fact:
+    docker_s4u_mcp_server_config_source_files: >-
+      {{ query(
+        'ansible.builtin.fileglob',
+        docker_s4u_mcp_server_instance.config_source_path ~ '/*'
+      ) | map('basename') | list }}
+
+- name: Find deployed MCP server configuration files
+  ansible.builtin.find:
+    paths: >-
+      {{ docker_data_basepath }}/{{ docker_s4u_mcp_server_container_name }}/config
+    file_type: file
+  register: docker_s4u_mcp_server_config_deployed_files
+  when: docker_s4u_mcp_server_config_cleanup | bool
+
+- name: Remove stale MCP server configuration files
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ docker_s4u_mcp_server_config_deployed_files.files | default([]) }}"
+  when:
+    - docker_s4u_mcp_server_config_cleanup | bool
+    - item.path | basename != 'README.md'
+    - item.path | basename not in docker_s4u_mcp_server_config_source_files
+
+- name: Create MCP server configuration management notice
+  ansible.builtin.copy:
+    dest: >-
+      {{ docker_data_basepath }}/{{ docker_s4u_mcp_server_container_name }}/config/README.md
+    content: |
+      # Managed by Ansible
+
+      This directory is managed by the
+      `system4u.infra.docker_s4u_mcp_server` role.
+      Do not edit, add, or remove files manually here.
+      Change the source configured by `config_source_path` in the deployment project.
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0644"
+
+- name: Deploy MCP server configuration directory
+  ansible.builtin.copy:
+    src: "{{ docker_s4u_mcp_server_instance.config_source_path }}/"
+    dest: >-
+      {{ docker_data_basepath }}/{{ docker_s4u_mcp_server_container_name }}/config/
+    owner: "{{ docker_user }}"
+    group: "{{ docker_group }}"
+    mode: "0640"
+    directory_mode: "0750"

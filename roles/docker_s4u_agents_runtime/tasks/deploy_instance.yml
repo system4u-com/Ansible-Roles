@@ -1,0 +1,16 @@
+---
+- name: Validate agents runtime instance
+  ansible.builtin.import_tasks:
+    file: validate.yml
+
+- name: Configure agents runtime files
+  ansible.builtin.import_tasks:
+    file: configure_files.yml
+
+- name: Create agents runtime network
+  ansible.builtin.import_tasks:
+    file: create_networks.yml
+
+- name: Create agents runtime container
+  ansible.builtin.import_tasks:
+    file: create_agents_runtime.yml

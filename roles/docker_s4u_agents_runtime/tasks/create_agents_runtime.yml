@@ -1,0 +1,60 @@
+---
+- name: Initialize agents runtime container networks
+  ansible.builtin.set_fact:
+    docker_s4u_agents_runtime_container_networks:
+      - name: "{{ docker_s4u_agents_runtime_ingress_network }}"
+      - name: "{{ docker_s4u_agents_runtime_egress_network }}"
+
+- name: Add agents runtime dependency networks
+  ansible.builtin.set_fact:
+    docker_s4u_agents_runtime_container_networks: >-
+      {{ docker_s4u_agents_runtime_container_networks + [{'name': item}] }}
+  loop: "{{ docker_s4u_agents_runtime_instance.dependency_networks | default([]) }}"
+
+- name: Create agents runtime container labels dictionary
+  ansible.builtin.include_role:
+    name: helper_merge_kv
+  vars:
+    helper_merge_kv_default: "{{ docker_s4u_agents_runtime_instance.labels | default([]) }}"
+    helper_merge_kv_override: "{{ docker_s4u_agents_runtime_instance.labels | default([]) }}"
+    helper_merge_kv_output: docker_s4u_agents_runtime_container_labels
+
+- name: Create agents runtime container environment dictionary
+  ansible.builtin.include_role:
+    name: helper_merge_kv
+  vars:
+    helper_merge_kv_default: >-
+      {{ docker_s4u_agents_runtime_instance.environment | default([]) }}
+    helper_merge_kv_override: []
+    helper_merge_kv_output: docker_s4u_agents_runtime_container_environment
+
+- name: Create agents runtime container
+  community.docker.docker_container:
+    docker_host: unix:///var/run/docker.sock
+    name: "{{ docker_s4u_agents_runtime_container_name }}"
+    image: "{{ docker_s4u_agents_runtime_instance.image }}"
+    pull: true
+    recreate: true
+    container_default_behavior: "no_defaults"
+    networks_cli_compatible: true
+    networks: "{{ docker_s4u_agents_runtime_container_networks }}"
+    env: "{{ docker_s4u_agents_runtime_container_environment }}"
+    labels: "{{ docker_s4u_agents_runtime_container_labels }}"
+    command: >-
+      {{ docker_s4u_agents_runtime_instance.command
+      if docker_s4u_agents_runtime_instance.command | default([]) | length > 0
+      else omit }}
+    user: "{{ docker_uid }}:{{ docker_gid }}"
+    read_only: true
+    security_opts:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    tmpfs: "{{ docker_s4u_agents_runtime_tmpfs }}"
+    volumes: >-
+      {{ docker_s4u_agents_runtime_instance.volumes | default([])
+      + [docker_data_basepath ~ '/' ~ docker_s4u_agents_runtime_container_name
+      ~ '/config:' ~ docker_s4u_agents_runtime_config_container_path ~ ':ro'] }}
+    restart_policy: unless-stopped
+    state: started
+  no_log: true

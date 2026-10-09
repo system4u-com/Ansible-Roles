@@ -1,0 +1,13 @@
+---
+# Deployment-specific agents runtime instances.
+docker_s4u_agents_runtime_instances: []
+
+# Resource naming derived from each instance name.
+docker_s4u_agents_runtime_container_name_prefix: "s4u-agents-runtime-"
+docker_s4u_agents_runtime_ingress_network_suffix: "-ingress-net"
+docker_s4u_agents_runtime_egress_network_suffix: "-egress-net"
+
+docker_s4u_agents_runtime_config_container_path: "/app/config"
+docker_s4u_agents_runtime_config_cleanup: true
+docker_s4u_agents_runtime_tmpfs:
+  - "/tmp:rw,noexec,nosuid,nodev,size=32m"

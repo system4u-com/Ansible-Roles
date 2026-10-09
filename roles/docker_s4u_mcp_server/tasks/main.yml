@@ -1,0 +1,16 @@
+---
+- name: Validate MCP server instance names
+  ansible.builtin.assert:
+    that:
+      - docker_s4u_mcp_server_instances | map(attribute='name') | list | unique | length == docker_s4u_mcp_server_instances | length
+    fail_msg: "MCP server instance names must be unique."
+
+- name: Deploy MCP server instances
+  ansible.builtin.include_tasks:
+    file: deploy_instance.yml
+  loop: "{{ docker_s4u_mcp_server_instances }}"
+  loop_control:
+    loop_var: docker_s4u_mcp_server_instance_item
+    label: "{{ docker_s4u_mcp_server_instance_item.name }}"
+  vars:
+    docker_s4u_mcp_server_instance: "{{ docker_s4u_mcp_server_instance_item }}"

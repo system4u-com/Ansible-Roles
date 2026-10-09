@@ -1,0 +1,145 @@
+---
+- name: Test docker_s4u_mcp_server
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    docker_user: "{{ lookup('ansible.builtin.pipe', 'id -un') }}"
+    docker_group: "{{ lookup('ansible.builtin.pipe', 'id -gn') }}"
+    docker_uid: "{{ lookup('ansible.builtin.pipe', 'id -u') | int }}"
+    docker_gid: "{{ lookup('ansible.builtin.pipe', 'id -g') | int }}"
+    docker_data_basepath: /tmp/system4u-mcp-server-ci
+    system_timezone: UTC
+    docker_s4u_mcp_server_instances:
+      - name: test
+        image: traefik/whoami:latest
+        config_source_path: "{{ playbook_dir }}/fixtures/mcp-server-config"
+        dependency_networks:
+          - s4u-mcp-test-redis-net
+        environment:
+          - key: TEST_VALUE
+            value: test
+
+  tasks:
+    - name: Create agentgateway-owned frontend ingress network
+      community.docker.docker_network:
+        name: s4u-mcp-test-ingress-net
+        internal: true
+        state: present
+
+    - name: Create dependency network
+      community.docker.docker_network:
+        name: s4u-mcp-test-redis-net
+        internal: true
+        state: present
+
+    - name: Run MCP server role test
+      block:
+        - name: Include MCP server role
+          ansible.builtin.include_role:
+            name: docker_s4u_mcp_server
+
+        - name: Inspect MCP server container
+          community.docker.docker_container_info:
+            name: s4u-mcp-test
+          register: mcp_server_container_info
+          until:
+            - mcp_server_container_info.exists
+            - mcp_server_container_info.container.State.Status == 'running'
+          retries: 15
+          delay: 2
+
+        - name: Inspect MCP server frontend ingress network
+          community.docker.docker_network_info:
+            name: s4u-mcp-test-ingress-net
+          register: mcp_server_ingress_network_info
+
+        - name: Inspect MCP server egress network
+          community.docker.docker_network_info:
+            name: s4u-mcp-test-egress-net
+          register: mcp_server_egress_network_info
+
+        - name: Inspect MCP server dependency network
+          community.docker.docker_network_info:
+            name: s4u-mcp-test-redis-net
+          register: mcp_server_dependency_network_info
+
+        - name: Verify MCP server container
+          ansible.builtin.assert:
+            that:
+              - mcp_server_container_info.container.Config.User == docker_uid ~ ':' ~ docker_gid
+              - mcp_server_container_info.container.HostConfig.PortBindings == {}
+              - mcp_server_container_info.container.Config.Env | select('equalto', 'TEST_VALUE=test') | list | length == 1
+              - mcp_server_container_info.container.HostConfig.ReadonlyRootfs
+              - mcp_server_container_info.container.NetworkSettings.Networks | length == 3
+              - >-
+                's4u-mcp-test-ingress-net' in
+                mcp_server_container_info.container.NetworkSettings.Networks
+              - >-
+                's4u-mcp-test-egress-net' in
+                mcp_server_container_info.container.NetworkSettings.Networks
+              - >-
+                's4u-mcp-test-redis-net' in
+                mcp_server_container_info.container.NetworkSettings.Networks
+
+        - name: Verify MCP server networks
+          ansible.builtin.assert:
+            that:
+              - mcp_server_ingress_network_info.network.Internal
+              - mcp_server_egress_network_info.exists
+              - not mcp_server_egress_network_info.network.Internal
+              - mcp_server_dependency_network_info.network.Internal
+
+        - name: Verify MCP server configuration copy
+          ansible.builtin.stat:
+            path: "{{ docker_data_basepath }}/s4u-mcp-test/config/config.yaml"
+          register: mcp_server_config_file
+
+        - name: Verify MCP server configuration exists
+          ansible.builtin.assert:
+            that:
+              - mcp_server_config_file.stat.exists
+
+        - name: Verify MCP server config mount is read-only
+          ansible.builtin.assert:
+            that:
+              - >-
+                mcp_server_container_info.container.Mounts
+                | selectattr('Destination', 'equalto', '/app/config')
+                | map(attribute='RW')
+                | first | default(true) == false
+
+        - name: Verify MCP server managed notice
+          ansible.builtin.stat:
+            path: "{{ docker_data_basepath }}/s4u-mcp-test/config/README.md"
+          register: mcp_server_notice
+
+        - name: Verify MCP server managed notice exists
+          ansible.builtin.assert:
+            that:
+              - mcp_server_notice.stat.exists
+      always:
+        - name: Remove MCP server test container
+          community.docker.docker_container:
+            name: s4u-mcp-test
+            state: absent
+
+        - name: Remove MCP server egress network
+          community.docker.docker_network:
+            name: s4u-mcp-test-egress-net
+            state: absent
+
+        - name: Remove MCP server dependency network
+          community.docker.docker_network:
+            name: s4u-mcp-test-redis-net
+            state: absent
+
+        - name: Remove MCP server frontend ingress network
+          community.docker.docker_network:
+            name: s4u-mcp-test-ingress-net
+            state: absent
+
+        - name: Remove MCP server test files
+          ansible.builtin.file:
+            path: "{{ docker_data_basepath }}"
+            state: absent

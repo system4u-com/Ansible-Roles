@@ -1,0 +1,5 @@
+---
+- name: Create agents runtime egress network
+  community.docker.docker_network:
+    name: "{{ docker_s4u_agents_runtime_egress_network }}"
+    state: present
