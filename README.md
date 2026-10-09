@@ -65,6 +65,11 @@ The container does not need to contain a user named `docker4u`; bind-mount
 permissions are based on the numeric UID/GID. The `docker4u` host user is not
 added to the `docker` group and therefore cannot use the Docker CLI by default.
 
+## Docker maintenance role
+
+See [`roles/docker_maintenance/README.md`](roles/docker_maintenance/README.md)
+for explicit Docker resource pruning and retention filters.
+
 ## Docker Traefik role
 
 See [`roles/docker_traefik/README.md`](roles/docker_traefik/README.md) for

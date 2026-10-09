@@ -24,3 +24,4 @@ This project follows `Semantic Versioning <https://semver.org/>`_.
   roles.
 - Add opt-in stale instance lifecycle cleanup for MCP server and agents runtime
   roles.
+- Add the ``docker_maintenance`` role for explicit Docker resource pruning.

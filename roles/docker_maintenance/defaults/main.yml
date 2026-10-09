@@ -1,0 +1,23 @@
+---
+# Every prune operation is disabled by default.
+docker_maintenance_prune_containers: false
+docker_maintenance_prune_images: false
+docker_maintenance_prune_networks: false
+docker_maintenance_prune_volumes: false
+docker_maintenance_prune_builder_cache: false
+
+# Keep stopped containers older than the selected age.
+docker_maintenance_containers_filters:
+  until: 168h
+
+# Only dangling images are pruned by default. Set dangling: false to prune all
+# unused images, including tagged images not used by a container.
+docker_maintenance_images_filters:
+  dangling: true
+
+# Docker removes only unused networks. Do not add filters unless the target
+# Docker Engine supports the selected network-prune filter.
+docker_maintenance_networks_filters: {}
+
+docker_maintenance_volumes_filters: {}
+docker_maintenance_builder_cache_filters: {}

@@ -1,0 +1,35 @@
+---
+- name: Test docker_maintenance safely
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Create unused test network
+      community.docker.docker_network:
+        name: docker-maintenance-test-net
+        state: present
+
+    - name: Run maintenance with all destructive operations disabled
+      ansible.builtin.include_role:
+        name: docker_maintenance
+      vars:
+        docker_maintenance_prune_containers: false
+        docker_maintenance_prune_images: false
+        docker_maintenance_prune_networks: false
+        docker_maintenance_prune_volumes: false
+        docker_maintenance_prune_builder_cache: false
+
+    - name: Verify unused test network still exists
+      community.docker.docker_network_info:
+        name: docker-maintenance-test-net
+      register: maintenance_network
+
+    - name: Assert disabled maintenance did not remove network
+      ansible.builtin.assert:
+        that:
+          - maintenance_network.exists
+
+    - name: Remove test network
+      community.docker.docker_network:
+        name: docker-maintenance-test-net
+        state: absent

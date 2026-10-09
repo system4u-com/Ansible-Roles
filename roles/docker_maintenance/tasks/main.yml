@@ -1,0 +1,13 @@
+---
+- name: Prune Docker resources
+  community.docker.docker_prune:
+    containers: "{{ docker_maintenance_prune_containers }}"
+    containers_filters: "{{ docker_maintenance_containers_filters }}"
+    images: "{{ docker_maintenance_prune_images }}"
+    images_filters: "{{ docker_maintenance_images_filters }}"
+    networks: "{{ docker_maintenance_prune_networks }}"
+    networks_filters: "{{ docker_maintenance_networks_filters }}"
+    volumes: "{{ docker_maintenance_prune_volumes }}"
+    volumes_filters: "{{ docker_maintenance_volumes_filters }}"
+    builder_cache: "{{ docker_maintenance_prune_builder_cache }}"
+    builder_cache_filters: "{{ docker_maintenance_builder_cache_filters }}"

@@ -106,6 +106,8 @@ orchestration layer and use descriptive action-oriented names such as
 - Make destructive operations opt-in and explicit. Disabling a feature should
   not delete existing containers, networks, or data unless a separate cleanup
   variable is enabled.
+- Docker maintenance/prune operations must be disabled by default and use
+  explicit retention filters. Never prune volumes by default.
 - For generated directories, clearly document ownership and cleanup behavior.
 - If a role replaces generated configuration, keep the target directory
   managed by the role and provide a warning README when useful.
