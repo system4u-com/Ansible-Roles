@@ -2,8 +2,8 @@
 - name: Initialize MCP server container networks
   ansible.builtin.set_fact:
     docker_s4u_mcp_server_container_networks:
-      - name: "{{ docker_s4u_mcp_server_ingress_network }}"
-      - name: "{{ docker_s4u_mcp_server_egress_network }}"
+      - name: "{{ docker_s4u_mcp_server_instance.ingress_network }}"
+      - name: "{{ docker_s4u_mcp_server_instance.egress_network }}"
 
 - name: Add MCP server dependency networks
   ansible.builtin.set_fact:
@@ -29,6 +29,16 @@
     helper_merge_kv_override: []
     helper_merge_kv_output: docker_s4u_mcp_server_container_environment
 
+- name: Add MCP server management labels
+  ansible.builtin.set_fact:
+    docker_s4u_mcp_server_container_labels: >-
+      {{ docker_s4u_mcp_server_container_labels | combine({
+        'com.system4u.managed-by': 'system4u.infra.docker_s4u_mcp_server',
+        'com.system4u.instance-name': docker_s4u_mcp_server_instance.name,
+        'com.system4u.egress-network': docker_s4u_mcp_server_instance.egress_network,
+        'com.system4u.data-path': docker_data_basepath ~ '/' ~ docker_s4u_mcp_server_instance.name
+      }) }}
+
 - name: Create MCP server container
   community.docker.docker_container:
     docker_host: unix:///var/run/docker.sock
@@ -40,6 +50,7 @@
     networks_cli_compatible: true
     networks: "{{ docker_s4u_mcp_server_container_networks }}"
     env: "{{ docker_s4u_mcp_server_container_environment }}"
+    labels: "{{ docker_s4u_mcp_server_container_labels }}"
     command: >-
       {{ docker_s4u_mcp_server_instance.command
       if docker_s4u_mcp_server_instance.command | default([]) | length > 0

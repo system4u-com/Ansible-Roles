@@ -5,6 +5,11 @@
       - docker_s4u_agents_runtime_instances | map(attribute='name') | list | unique | length == docker_s4u_agents_runtime_instances | length
     fail_msg: "Agents runtime instance names must be unique."
 
+- name: Set agents runtime instance names
+  ansible.builtin.set_fact:
+    docker_s4u_agents_runtime_instance_names: >-
+      {{ docker_s4u_agents_runtime_instances | map(attribute='name') | list }}
+
 - name: Deploy agents runtime instances
   ansible.builtin.include_tasks:
     file: deploy_instance.yml
@@ -14,3 +19,8 @@
     label: "{{ docker_s4u_agents_runtime_instance_item.name }}"
   vars:
     docker_s4u_agents_runtime_instance: "{{ docker_s4u_agents_runtime_instance_item }}"
+
+- name: Clean up stale agents runtime instances
+  ansible.builtin.include_tasks:
+    file: cleanup_stale.yml
+  when: docker_s4u_agents_runtime_cleanup_stale_instances | bool

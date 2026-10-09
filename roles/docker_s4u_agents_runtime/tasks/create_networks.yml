@@ -1,5 +1,8 @@
 ---
 - name: Create agents runtime egress network
   community.docker.docker_network:
-    name: "{{ docker_s4u_agents_runtime_egress_network }}"
+    name: "{{ docker_s4u_agents_runtime_instance.egress_network }}"
+    labels:
+      com.system4u.managed-by: system4u.infra.docker_s4u_agents_runtime
+      com.system4u.instance-name: "{{ docker_s4u_agents_runtime_instance.name }}"
     state: present

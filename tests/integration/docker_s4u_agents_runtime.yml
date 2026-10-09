@@ -11,8 +11,10 @@
     docker_data_basepath: /tmp/system4u-agents-runtime-ci
     system_timezone: UTC
     docker_s4u_agents_runtime_instances:
-      - name: test
+      - name: s4u-agents-runtime-test
         image: traefik/whoami:latest
+        ingress_network: s4u-agents-runtime-test-ingress-net
+        egress_network: s4u-agents-runtime-test-egress-net
         config_source_path: "{{ playbook_dir }}/fixtures/agents-runtime-config"
         dependency_networks: []
         environment:

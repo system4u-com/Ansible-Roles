@@ -11,8 +11,10 @@
     docker_data_basepath: /tmp/system4u-mcp-server-ci
     system_timezone: UTC
     docker_s4u_mcp_server_instances:
-      - name: test
+      - name: s4u-mcp-test
         image: traefik/whoami:latest
+        ingress_network: s4u-mcp-test-ingress-net
+        egress_network: s4u-mcp-test-egress-net
         config_source_path: "{{ playbook_dir }}/fixtures/mcp-server-config"
         dependency_networks:
           - s4u-mcp-test-redis-net

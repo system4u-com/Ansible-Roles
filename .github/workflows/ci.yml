@@ -119,6 +119,14 @@ jobs:
           -i localhost,
           tests/integration/docker_s4u_agents_runtime.yml
 
+      - name: Run MCP lifecycle integration test
+        env:
+          ANSIBLE_ROLES_PATH: ${{ github.workspace }}/roles
+        run: >-
+          ansible-playbook
+          -i localhost,
+          tests/integration/docker_s4u_mcp_server_lifecycle.yml
+
   build:
     name: Build collection
     runs-on: ubuntu-latest

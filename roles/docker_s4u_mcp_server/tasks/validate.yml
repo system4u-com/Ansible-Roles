@@ -3,31 +3,24 @@
   ansible.builtin.assert:
     that:
       - docker_s4u_mcp_server_instance.name is string
-      - docker_s4u_mcp_server_instance.name is match('^[a-z0-9][a-z0-9-]*[a-z0-9]$')
+      - docker_s4u_mcp_server_instance.name | length > 0
       - docker_s4u_mcp_server_instance.image is string
       - docker_s4u_mcp_server_instance.image | length > 0
+      - docker_s4u_mcp_server_instance.ingress_network is string
+      - docker_s4u_mcp_server_instance.ingress_network | length > 0
+      - docker_s4u_mcp_server_instance.egress_network is string
+      - docker_s4u_mcp_server_instance.egress_network | length > 0
       - docker_s4u_mcp_server_instance.config_source_path is string
       - docker_s4u_mcp_server_instance.config_source_path | length > 0
     fail_msg: "The MCP server instance is missing a required value."
 
-- name: Set derived MCP server container name
+- name: Set MCP server resource names
   ansible.builtin.set_fact:
-    docker_s4u_mcp_server_container_name: >-
-      {{ docker_s4u_mcp_server_container_name_prefix
-      ~ docker_s4u_mcp_server_instance.name }}
-
-- name: Set derived MCP server network names
-  ansible.builtin.set_fact:
-    docker_s4u_mcp_server_ingress_network: >-
-      {{ docker_s4u_mcp_server_container_name
-      ~ docker_s4u_mcp_server_ingress_network_suffix }}
-    docker_s4u_mcp_server_egress_network: >-
-      {{ docker_s4u_mcp_server_container_name
-      ~ docker_s4u_mcp_server_egress_network_suffix }}
+    docker_s4u_mcp_server_container_name: "{{ docker_s4u_mcp_server_instance.name }}"
 
 - name: Check MCP server frontend ingress network
   community.docker.docker_network_info:
-    name: "{{ docker_s4u_mcp_server_ingress_network }}"
+    name: "{{ docker_s4u_mcp_server_instance.ingress_network }}"
   register: docker_s4u_mcp_server_ingress_network_info
 
 - name: Validate MCP server frontend ingress network
@@ -36,8 +29,8 @@
       - docker_s4u_mcp_server_ingress_network_info.exists
       - docker_s4u_mcp_server_ingress_network_info.network.Internal
     fail_msg: >-
-      The derived MCP server frontend ingress network must already exist and
-      be internal. Create it through docker_agentgateway_downstream_networks.
+      The MCP server frontend ingress network must already exist and be
+      internal. Create it through docker_agentgateway_downstream_networks.
 
 - name: Check MCP server dependency networks
   community.docker.docker_network_info:

@@ -1,0 +1,40 @@
+---
+- name: List managed MCP server containers
+  community.docker.docker_host_info:
+    containers: true
+    containers_all: true
+    containers_filters:
+      label: "com.system4u.managed-by=system4u.infra.docker_s4u_mcp_server"
+    verbose_output: true
+  register: docker_s4u_mcp_server_managed_containers
+
+- name: Initialize stale MCP server containers
+  ansible.builtin.set_fact:
+    docker_s4u_mcp_server_stale_containers: []
+
+- name: Identify stale MCP server containers
+  ansible.builtin.set_fact:
+    docker_s4u_mcp_server_stale_containers: >-
+      {{ docker_s4u_mcp_server_stale_containers + [item] }}
+  loop: "{{ docker_s4u_mcp_server_managed_containers.containers }}"
+  when:
+    - item.Labels is defined
+    - item.Labels['com.system4u.instance-name'] not in docker_s4u_mcp_server_instance_names
+
+- name: Remove stale MCP server containers
+  community.docker.docker_container:
+    name: "{{ item.Names | first | regex_replace('^/', '') }}"
+    state: absent
+  loop: "{{ docker_s4u_mcp_server_stale_containers }}"
+
+- name: Remove stale MCP server egress networks
+  community.docker.docker_network:
+    name: "{{ item.Labels['com.system4u.egress-network'] }}"
+    state: absent
+  loop: "{{ docker_s4u_mcp_server_stale_containers }}"
+
+- name: Remove stale MCP server data directories
+  ansible.builtin.file:
+    path: "{{ item.Labels['com.system4u.data-path'] }}"
+    state: absent
+  loop: "{{ docker_s4u_mcp_server_stale_containers }}"

@@ -11,6 +11,12 @@ argument_specs:
           name:
             type: str
             required: true
+          ingress_network:
+            type: str
+            required: true
+          egress_network:
+            type: str
+            required: true
           image:
             type: str
             required: true
@@ -37,6 +43,10 @@ argument_specs:
             type: list
             elements: str
             default: []
+
+      docker_s4u_agents_runtime_cleanup_stale_instances:
+        type: bool
+        default: false
 
       docker_s4u_agents_runtime_config_container_path:
         type: path

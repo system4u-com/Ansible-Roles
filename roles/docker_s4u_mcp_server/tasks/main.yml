@@ -5,6 +5,11 @@
       - docker_s4u_mcp_server_instances | map(attribute='name') | list | unique | length == docker_s4u_mcp_server_instances | length
     fail_msg: "MCP server instance names must be unique."
 
+- name: Set MCP server instance names
+  ansible.builtin.set_fact:
+    docker_s4u_mcp_server_instance_names: >-
+      {{ docker_s4u_mcp_server_instances | map(attribute='name') | list }}
+
 - name: Deploy MCP server instances
   ansible.builtin.include_tasks:
     file: deploy_instance.yml
@@ -14,3 +19,8 @@
     label: "{{ docker_s4u_mcp_server_instance_item.name }}"
   vars:
     docker_s4u_mcp_server_instance: "{{ docker_s4u_mcp_server_instance_item }}"
+
+- name: Clean up stale MCP server instances
+  ansible.builtin.include_tasks:
+    file: cleanup_stale.yml
+  when: docker_s4u_mcp_server_cleanup_stale_instances | bool

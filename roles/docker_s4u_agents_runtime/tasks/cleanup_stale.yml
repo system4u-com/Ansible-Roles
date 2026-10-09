@@ -1,0 +1,40 @@
+---
+- name: List managed agents runtime containers
+  community.docker.docker_host_info:
+    containers: true
+    containers_all: true
+    containers_filters:
+      label: "com.system4u.managed-by=system4u.infra.docker_s4u_agents_runtime"
+    verbose_output: true
+  register: docker_s4u_agents_runtime_managed_containers
+
+- name: Initialize stale agents runtime containers
+  ansible.builtin.set_fact:
+    docker_s4u_agents_runtime_stale_containers: []
+
+- name: Identify stale agents runtime containers
+  ansible.builtin.set_fact:
+    docker_s4u_agents_runtime_stale_containers: >-
+      {{ docker_s4u_agents_runtime_stale_containers + [item] }}
+  loop: "{{ docker_s4u_agents_runtime_managed_containers.containers }}"
+  when:
+    - item.Labels is defined
+    - item.Labels['com.system4u.instance-name'] not in docker_s4u_agents_runtime_instance_names
+
+- name: Remove stale agents runtime containers
+  community.docker.docker_container:
+    name: "{{ item.Names | first | regex_replace('^/', '') }}"
+    state: absent
+  loop: "{{ docker_s4u_agents_runtime_stale_containers }}"
+
+- name: Remove stale agents runtime egress networks
+  community.docker.docker_network:
+    name: "{{ item.Labels['com.system4u.egress-network'] }}"
+    state: absent
+  loop: "{{ docker_s4u_agents_runtime_stale_containers }}"
+
+- name: Remove stale agents runtime data directories
+  ansible.builtin.file:
+    path: "{{ item.Labels['com.system4u.data-path'] }}"
+    state: absent
+  loop: "{{ docker_s4u_agents_runtime_stale_containers }}"

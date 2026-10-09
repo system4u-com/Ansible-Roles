@@ -1,0 +1,155 @@
+---
+- name: Test docker_s4u_mcp_server stale instance cleanup
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    docker_user: "{{ lookup('ansible.builtin.pipe', 'id -un') }}"
+    docker_group: "{{ lookup('ansible.builtin.pipe', 'id -gn') }}"
+    docker_uid: "{{ lookup('ansible.builtin.pipe', 'id -u') | int }}"
+    docker_gid: "{{ lookup('ansible.builtin.pipe', 'id -g') | int }}"
+    docker_data_basepath: /tmp/system4u-mcp-lifecycle-ci
+    system_timezone: UTC
+    docker_s4u_mcp_server_test_source: "{{ playbook_dir }}/fixtures/mcp-server-config"
+    docker_s4u_mcp_server_instances:
+      - name: s4u-mcp-first
+        image: traefik/whoami:latest
+        ingress_network: s4u-mcp-first-ingress-net
+        egress_network: s4u-mcp-first-egress-net
+        config_source_path: "{{ docker_s4u_mcp_server_test_source }}"
+        dependency_networks: []
+      - name: s4u-mcp-second
+        image: traefik/whoami:latest
+        ingress_network: s4u-mcp-second-ingress-net
+        egress_network: s4u-mcp-second-egress-net
+        config_source_path: "{{ docker_s4u_mcp_server_test_source }}"
+        dependency_networks: []
+
+  tasks:
+    - name: Create frontend ingress networks
+      community.docker.docker_network:
+        name: "{{ item }}"
+        internal: true
+        state: present
+      loop:
+        - s4u-mcp-first-ingress-net
+        - s4u-mcp-second-ingress-net
+
+    - name: Run lifecycle test
+      block:
+        - name: Deploy two MCP instances
+          ansible.builtin.include_role:
+            name: docker_s4u_mcp_server
+
+        - name: Verify both MCP instances exist
+          community.docker.docker_container_info:
+            name: "{{ item }}"
+          loop:
+            - s4u-mcp-first
+            - s4u-mcp-second
+          register: initial_mcp_containers
+
+        - name: Assert both MCP instances are running
+          ansible.builtin.assert:
+            that:
+              - item.exists
+              - item.container.State.Status == 'running'
+          loop: "{{ initial_mcp_containers.results }}"
+
+        - name: Keep only the first instance without cleanup
+          ansible.builtin.include_role:
+            name: docker_s4u_mcp_server
+          vars:
+            docker_s4u_mcp_server_instances:
+              - name: s4u-mcp-first
+                image: traefik/whoami:latest
+                ingress_network: s4u-mcp-first-ingress-net
+                egress_network: s4u-mcp-first-egress-net
+                config_source_path: "{{ docker_s4u_mcp_server_test_source }}"
+                dependency_networks: []
+            docker_s4u_mcp_server_cleanup_stale_instances: false
+
+        - name: Verify stale instance remains without cleanup
+          community.docker.docker_container_info:
+            name: s4u-mcp-second
+          register: stale_without_cleanup
+
+        - name: Assert stale instance remains without cleanup
+          ansible.builtin.assert:
+            that:
+              - stale_without_cleanup.exists
+
+        - name: Keep only the first instance with cleanup
+          ansible.builtin.include_role:
+            name: docker_s4u_mcp_server
+          vars:
+            docker_s4u_mcp_server_instances:
+              - name: s4u-mcp-first
+                image: traefik/whoami:latest
+                ingress_network: s4u-mcp-first-ingress-net
+                egress_network: s4u-mcp-first-egress-net
+                config_source_path: "{{ docker_s4u_mcp_server_test_source }}"
+                dependency_networks: []
+            docker_s4u_mcp_server_cleanup_stale_instances: true
+
+        - name: Inspect stale container after cleanup
+          community.docker.docker_container_info:
+            name: s4u-mcp-second
+          register: stale_after_cleanup
+
+        - name: Inspect stale egress network after cleanup
+          community.docker.docker_network_info:
+            name: s4u-mcp-second-egress-net
+          register: stale_network_after_cleanup
+
+        - name: Check stale data directory after cleanup
+          ansible.builtin.stat:
+            path: "{{ docker_data_basepath }}/s4u-mcp-second"
+          register: stale_data_after_cleanup
+
+        - name: Verify stale resources were removed
+          ansible.builtin.assert:
+            that:
+              - not stale_after_cleanup.exists
+              - not stale_network_after_cleanup.exists
+              - not stale_data_after_cleanup.stat.exists
+
+        - name: Verify current instance remains
+          community.docker.docker_container_info:
+            name: s4u-mcp-first
+          register: current_after_cleanup
+
+        - name: Assert current instance remains running
+          ansible.builtin.assert:
+            that:
+              - current_after_cleanup.exists
+              - current_after_cleanup.container.State.Status == 'running'
+      always:
+        - name: Remove lifecycle test containers
+          community.docker.docker_container:
+            name: "{{ item }}"
+            state: absent
+          loop:
+            - s4u-mcp-first
+            - s4u-mcp-second
+
+        - name: Remove lifecycle test egress networks
+          community.docker.docker_network:
+            name: "{{ item }}"
+            state: absent
+          loop:
+            - s4u-mcp-first-egress-net
+            - s4u-mcp-second-egress-net
+
+        - name: Remove lifecycle test ingress networks
+          community.docker.docker_network:
+            name: "{{ item }}"
+            state: absent
+          loop:
+            - s4u-mcp-first-ingress-net
+            - s4u-mcp-second-ingress-net
+
+        - name: Remove lifecycle test data
+          ansible.builtin.file:
+            path: "{{ docker_data_basepath }}"
+            state: absent

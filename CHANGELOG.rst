@@ -22,3 +22,5 @@ This project follows `Semantic Versioning <https://semver.org/>`_.
   MCP and agents runtime roles.
 - Add Docker runtime integration tests for the MCP server and agents runtime
   roles.
+- Add opt-in stale instance lifecycle cleanup for MCP server and agents runtime
+  roles.

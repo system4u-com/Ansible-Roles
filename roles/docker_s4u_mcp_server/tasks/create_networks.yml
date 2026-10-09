@@ -1,5 +1,8 @@
 ---
 - name: Create MCP server egress network
   community.docker.docker_network:
-    name: "{{ docker_s4u_mcp_server_egress_network }}"
+    name: "{{ docker_s4u_mcp_server_instance.egress_network }}"
+    labels:
+      com.system4u.managed-by: system4u.infra.docker_s4u_mcp_server
+      com.system4u.instance-name: "{{ docker_s4u_mcp_server_instance.name }}"
     state: present

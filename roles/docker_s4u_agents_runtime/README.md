@@ -15,8 +15,10 @@ Define the instances in the deployment project and invoke the role once:
 ```yaml
 # group_vars/grp_docker_hosts/agents_runtime.yml
 docker_s4u_agents_runtime_instances:
-  - name: support
+  - name: s4u-agents-runtime
     image: ghcr.io/system4u-com/s4u-agents-runtime:2026.10.0
+    ingress_network: support-agents-runtime-ingress-net
+    egress_network: support-agents-runtime-egress-net
     config_source_path: >-
       {{ playbook_dir }}/templates/s4u-agents-runtime/config
     dependency_networks: []
@@ -40,25 +42,12 @@ network, data directory, and configuration directory.
 Images are built and published by the deployment project's CI, for example to
 GHCR. Use an immutable release tag or digest rather than `latest` in production.
 
-## Derived resource names
+## Resource names
 
-The `name` field is a logical instance suffix, not the final Docker resource
-name. With the default naming settings:
-
-```yaml
-name: support
-```
-
-produces:
-
-```text
-container:       s4u-agents-runtime-support
-frontend ingress: s4u-agents-runtime-support-ingress-net
-egress:           s4u-agents-runtime-support-egress-net
-```
-
-The prefix and suffixes can be changed through role defaults when a deployment
-needs a different naming namespace.
+The `name`, `ingress_network`, and `egress_network` fields are explicit final
+Docker resource names. The role does not add prefixes or suffixes. This keeps
+the network contract with `docker_agentgateway` visible in the deployment
+configuration.
 
 ## Instance fields
 
@@ -66,8 +55,10 @@ The public variable is a list. Each item supports the following fields:
 
 | Field | Required | Description |
 | --- | --- | --- |
-| `name` | yes | Lowercase logical instance suffix |
+| `name` | yes | Final Docker container name |
 | `image` | yes | Container image |
+| `ingress_network` | yes | Final internal frontend network owned by agentgateway |
+| `egress_network` | yes | Final dedicated egress network created by this role |
 | `dependency_networks` | no | Existing dependency networks, for example a Redis cache network |
 | `config_source_path` | yes | Controller-side runtime configuration directory |
 | `environment` | no | String key-value environment variables |
@@ -75,9 +66,9 @@ The public variable is a list. Each item supports the following fields:
 | `command` | no | Optional command override; omitted preserves the image default |
 | `volumes` | no | Additional volume mappings |
 
-The role derives the frontend ingress and egress network names from `name`.
-Dependency networks remain explicit and are neither created nor inferred by the
-role.
+The role uses the explicit frontend ingress and egress network names from
+the instance. Dependency networks remain explicit and are neither created nor
+inferred by the role.
 
 ## Network ownership
 
@@ -102,6 +93,17 @@ The target config directory is managed by this role. Manual changes are not
 persistent; update the source directory in the deployment project instead.
 Stale target files are removed by default; set
 `docker_s4u_agents_runtime_config_cleanup: false` to disable that cleanup.
+
+When an instance is removed from the list, its container, derived egress
+network, and data directory are retained by default. Enable explicit lifecycle
+cleanup to remove stale instances:
+
+```yaml
+docker_s4u_agents_runtime_cleanup_stale_instances: true
+```
+
+Cleanup never removes frontend ingress or dependency networks, which are owned
+by other roles.
 
 The container can host multiple agents and runs with the shared
 `docker_uid:docker_gid` identity. It uses a read-only root filesystem, dropped
