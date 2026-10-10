@@ -1,0 +1,27 @@
+---
+- name: Check controller source and managed-host destination task contracts
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Verify source checks are local and destination writes stay remote
+      vars:
+        test_tasks: >-
+          {{ lookup('ansible.builtin.file', playbook_dir ~ '/../../roles/'
+             ~ item.role ~ '/tasks/configure_files.yml') | ansible.builtin.from_yaml }}
+        test_source_checks: "{{ test_tasks | selectattr('name', 'equalto', item.source_task) | list }}"
+        test_destination_writes: >-
+          {{ test_tasks | rejectattr('name', 'equalto', item.source_task) | list }}
+      ansible.builtin.assert:
+        that:
+          - test_source_checks | length == 1
+          - test_source_checks[0]['ansible.builtin.stat'] is defined
+          - test_source_checks[0].delegate_to == 'localhost'
+          - test_source_checks[0].become == false
+          - test_destination_writes | length > 0
+          - test_destination_writes | selectattr('delegate_to', 'defined') | list | length == 0
+      loop:
+        - role: docker_agentgateway
+          source_task: Check agentgateway configuration source
+        - role: docker_traefik
+          source_task: Check dynamic configuration source path

@@ -35,6 +35,9 @@ jobs:
       - name: Check optional middleware templates
         run: ansible-playbook -i localhost, tests/integration/docker_traefik_middlewares.yml
 
+      - name: Check controller source task contracts
+        run: ansible-playbook -i localhost, tests/integration/docker_controller_sources.yml
+
   sanity:
     name: Ansible sanity tests
     runs-on: ubuntu-latest

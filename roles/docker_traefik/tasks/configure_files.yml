@@ -43,6 +43,8 @@
 - name: Check dynamic configuration source path
   ansible.builtin.stat:
     path: "{{ docker_traefik_dynamic_config_effective_source_path }}"
+  delegate_to: localhost
+  become: false
   register: docker_traefik_dynamic_config_source_stat
 
 - name: Validate dynamic configuration source path

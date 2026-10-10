@@ -17,6 +17,8 @@
 - name: Check agentgateway configuration source
   ansible.builtin.stat:
     path: "{{ docker_agentgateway_effective_config_source_path }}"
+  delegate_to: localhost
+  become: false
   register: docker_agentgateway_config_source_stat
 
 - name: Validate agentgateway configuration source

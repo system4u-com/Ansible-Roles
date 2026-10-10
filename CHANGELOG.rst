@@ -6,6 +6,8 @@ This project follows `Semantic Versioning <https://semver.org/>`_.
 0.1.0
 -----
 
+- Check Traefik and Agentgateway template sources on the controller without
+  privilege escalation, while keeping destination operations on managed hosts.
 - Add opt-in Traefik REST, MCP and agent API middleware chains with fixed
   rate/concurrency budgets, streaming-safe MCP/agent profiles and API headers;
   preserve the legacy ``security-chain`` and support custom source templates.
