@@ -1,79 +1,25 @@
 ---
-# Render actual role templates without Docker, upstream APIs or secrets.
-- name: Test reusable Traefik middleware configuration
+- name: Check optional Traefik middleware profiles without Docker
   hosts: localhost
   connection: local
   gather_facts: false
-  vars_files:
-    - ../../roles/docker_traefik/defaults/main.yml
   vars:
-    test_middleware_template: "{{ playbook_dir }}/../../roles/docker_traefik/templates/dynamic/middlewares.yml.j2"
-    test_middlewares: >-
-      {{ (lookup('ansible.builtin.template', test_middleware_template) | ansible.builtin.from_yaml).http.middlewares }}
+    test_template_dir: "{{ playbook_dir }}/../../roles/docker_traefik/templates/dynamic"
+    test_basic: "{{ (lookup('ansible.builtin.template', test_template_dir ~ '/middlewares.yml.j2') | from_yaml).http.middlewares }}"
+    test_strict: "{{ (lookup('ansible.builtin.template', test_template_dir ~ '/middlewares-strict.yml.j2') | from_yaml).http.middlewares }}"
   tasks:
-    - name: Validate default middleware inputs
-      ansible.builtin.include_tasks: ../../roles/docker_traefik/tasks/validate_middlewares.yml
-
-    - name: Verify existing chain and header behavior remain unchanged
+    - name: Verify basic compatibility and opt-in strict limits
       ansible.builtin.assert:
         that:
-          - test_middlewares['security-chain'].chain.middlewares == ['security-headers', 'compress']
-          - test_middlewares['security-headers'].headers.stsPreload
-          - test_middlewares['security-headers'].headers.stsIncludeSubdomains
-          - test_middlewares['security-headers'].headers.referrerPolicy == 'strict-origin-when-cross-origin'
-          - test_middlewares['compress'].compress == {}
-          - test_middlewares['request-body-limit'].buffering.maxRequestBodyBytes == 1048576
-          - test_middlewares['request-body-limit'].buffering.memRequestBodyBytes == 131072
-          - test_middlewares['rate-limit'].rateLimit == {'average':120, 'period':'1m', 'burst':30}
-          - test_middlewares['inflight-limit'].inFlightReq == {'amount':20, 'sourceCriterion':{'requestHost':true}}
-
-    - name: Check invalid middleware inputs are rejected
-      ansible.builtin.include_tasks: fixtures/traefik-middleware-invalid.yml
-      loop:
-        - {memory_bytes: -1, expected_task: Validate request body limits}
-        - {memory_bytes: 2097152, expected_task: Validate request body limits}
-        - {average: 0, expected_task: Validate request rate and concurrency limits}
-        - {period: 0s, expected_task: Validate request rate and concurrency limits}
-        - {inflight: -1, expected_task: Validate request rate and concurrency limits}
-      vars:
-        docker_traefik_request_body_limit_memory_bytes: "{{ item.memory_bytes | default(131072) }}"
-        docker_traefik_rate_limit_average: "{{ item.average | default(120) }}"
-        docker_traefik_rate_limit_period: "{{ item.period | default('1m') }}"
-        docker_traefik_inflight_limit_amount: "{{ item.inflight | default(20) }}"
-
-    - name: Set host-specific middleware overrides
-      ansible.builtin.set_fact:
-        docker_traefik_security_headers:
-          contentTypeNosniff: true
-          stsPreload: false
-          referrerPolicy: no-referrer
-          customResponseHeaders:
-            Server: ""
-        docker_traefik_request_body_limit_max_bytes: 2097152
-        docker_traefik_request_body_limit_memory_bytes: 262144
-        docker_traefik_rate_limit_average: 600
-        docker_traefik_rate_limit_period: "30s"
-        docker_traefik_rate_limit_burst: 120
-        docker_traefik_rate_limit_source_criterion:
-          requestHost: true
-        docker_traefik_inflight_limit_amount: 100
-        docker_traefik_inflight_limit_source_criterion: {}
-        docker_traefik_security_chain_middlewares:
-          - request-body-limit
-          - rate-limit
-          - inflight-limit
-          - security-headers
-
-    - name: Validate overridden middleware inputs
-      ansible.builtin.include_tasks: ../../roles/docker_traefik/tasks/validate_middlewares.yml
-
-    - name: Verify overridden middleware output
-      ansible.builtin.assert:
-        that:
-          - test_middlewares['security-chain'].chain.middlewares == docker_traefik_security_chain_middlewares
-          - test_middlewares['security-headers'].headers == docker_traefik_security_headers
-          - test_middlewares['request-body-limit'].buffering == {'maxRequestBodyBytes':2097152, 'memRequestBodyBytes':262144}
+          - test_basic['security-chain'].chain.middlewares == ['security-headers', 'compress']
+          - test_basic['security-headers'].headers.contentTypeNosniff
+          - test_basic.keys() | intersect(test_strict.keys()) | length == 0
           - >-
-            test_middlewares['rate-limit'].rateLimit ==
-            {'average':600, 'period':'30s', 'burst':120, 'sourceCriterion':{'requestHost':true}}
-          - test_middlewares['inflight-limit'].inFlightReq == {'amount':100}
+            test_strict['strict-chain'].chain.middlewares ==
+            ['strict-body-limit', 'strict-rate-limit', 'strict-inflight-limit', 'security-headers']
+          - >-
+            test_strict['strict-chain'].chain.middlewares |
+            difference((test_basic.keys() | list) + (test_strict.keys() | list)) | length == 0
+          - test_strict['strict-body-limit'].buffering.maxRequestBodyBytes == 1048576
+          - test_strict['strict-rate-limit'].rateLimit == {'average':120, 'period':'1m', 'burst':30}
+          - test_strict['strict-inflight-limit'].inFlightReq == {'amount':20, 'sourceCriterion':{'requestHost':true}}

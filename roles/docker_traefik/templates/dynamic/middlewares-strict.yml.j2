@@ -1,0 +1,25 @@
+---
+# Optional fixed profile. Select strict-chain@file explicitly on a router.
+http:
+  middlewares:
+    strict-body-limit:
+      buffering:
+        maxRequestBodyBytes: 1048576
+        memRequestBodyBytes: 131072
+    strict-rate-limit:
+      rateLimit:
+        average: 120
+        period: 1m
+        burst: 30
+    strict-inflight-limit:
+      inFlightReq:
+        amount: 20
+        sourceCriterion:
+          requestHost: true
+    strict-chain:
+      chain:
+        middlewares:
+          - strict-body-limit
+          - strict-rate-limit
+          - strict-inflight-limit
+          - security-headers

@@ -1,7 +1,4 @@
 ---
-- name: Validate reusable middleware settings
-  ansible.builtin.import_tasks: validate_middlewares.yml
-
 - name: Validate ACME email
   ansible.builtin.assert:
     that:

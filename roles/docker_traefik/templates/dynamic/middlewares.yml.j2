@@ -1,32 +1,20 @@
 ---
-# Attach middleware explicitly through router labels.
+# Reusable middleware definitions.
+# Attach them to routers explicitly with Docker labels, for example:
+# traefik.http.routers.app.middlewares=security-chain@file
 http:
   middlewares:
     security-headers:
       headers:
-{{ docker_traefik_security_headers | to_nice_yaml(indent=2) | indent(8, true) }}
-    request-body-limit:
-      buffering:
-        maxRequestBodyBytes: {{ docker_traefik_request_body_limit_max_bytes | int }}
-        memRequestBodyBytes: {{ docker_traefik_request_body_limit_memory_bytes | int }}
-
-    rate-limit:
-      rateLimit:
-        average: {{ docker_traefik_rate_limit_average | int }}
-        period: {{ docker_traefik_rate_limit_period | to_json }}
-        burst: {{ docker_traefik_rate_limit_burst | int }}
-{% if docker_traefik_rate_limit_source_criterion | length > 0 %}
-        sourceCriterion:
-{{ docker_traefik_rate_limit_source_criterion | to_nice_yaml(indent=2) | indent(10, true) }}
-{% endif %}
-
-    inflight-limit:
-      inFlightReq:
-        amount: {{ docker_traefik_inflight_limit_amount | int }}
-{% if docker_traefik_inflight_limit_source_criterion | length > 0 %}
-        sourceCriterion:
-{{ docker_traefik_inflight_limit_source_criterion | to_nice_yaml(indent=2) | indent(10, true) }}
-{% endif %}
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: strict-origin-when-cross-origin
+        permissionsPolicy: >-
+          camera=(), microphone=(), geolocation=()
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        stsPreload: true
+        forceSTSHeader: true
 
     compress:
       compress: {}
@@ -34,4 +22,5 @@ http:
     security-chain:
       chain:
         middlewares:
-{{ docker_traefik_security_chain_middlewares | to_nice_yaml(indent=2) | indent(10, true) }}
+          - security-headers
+          - compress
