@@ -83,7 +83,9 @@
             that:
               - agentgateway_container_info.exists
               - agentgateway_container_info.container.Config.User == docker_uid ~ ':' ~ docker_gid
-              - agentgateway_container_info.container.HostConfig.PortBindings == {}
+              # Docker may return null or an empty map when no ports are published.
+              - agentgateway_container_info.container.HostConfig.PortBindings in [none, {}]
+              - not agentgateway_container_info.container.HostConfig.PublishAllPorts
               - agentgateway_container_info.container.Config.Cmd == ['-f', '/config/config.yaml']
               - agentgateway_container_info.container.State.ExitCode == 0
               - agentgateway_container_info.container.State.Status == 'running'
