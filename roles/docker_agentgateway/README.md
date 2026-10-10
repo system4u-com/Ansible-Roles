@@ -114,6 +114,24 @@ The role renders the source into the read-only `/config` mount. The current
 stateless configuration does not enable UI or database features and therefore
 does not need container-side writes.
 
+## Additional mounts
+
+`docker_agentgateway_container_extra_volumes` is an empty list by default.
+It appends Docker volume bindings without replacing the read-only `/config`
+mount. For example, a deployment-managed secret directory can be mounted with:
+
+```yaml
+docker_agentgateway_container_extra_volumes:
+  - /opt/docker4u/gateway-secrets:/etc/agentgateway/secrets:ro
+```
+
+The deployment must create source paths before running the role and owns their
+content, permissions, rotation and removal. For secrets, use a private directory
+owned by root with mode 0750 and files with mode 0640, readable by the container's
+numeric group but not writable by its non-root user. Use `:ro` explicitly; do
+not mount over `/config` or expose another instance's secrets. This role neither
+fetches credentials nor changes ownership of additional mount sources.
+
 ## Multiple instances
 
 Include the role once per instance with distinct names, networks, data paths,

@@ -64,9 +64,10 @@
       - ALL
     tmpfs:
       - /tmp
-    volumes:
-      - >-
-        {{ docker_agentgateway_container_data_basepath }}:{{ docker_agentgateway_config_container_path }}:ro
+    volumes: >-
+      {{ [docker_agentgateway_container_data_basepath ~ ':'
+          ~ docker_agentgateway_config_container_path ~ ':ro']
+         + docker_agentgateway_container_extra_volumes }}
     restart_policy: unless-stopped
     state: started
   no_log: true

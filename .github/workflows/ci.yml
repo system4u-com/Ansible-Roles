@@ -133,6 +133,11 @@ jobs:
           -i localhost,
           tests/integration/docker_s4u_mcp_server_lifecycle.yml
 
+      - name: Run Agentgateway integration test
+        env:
+          ANSIBLE_ROLES_PATH: ${{ github.workspace }}/roles
+        run: ansible-playbook -i localhost, tests/integration/docker_agentgateway.yml
+
   integration-maintenance:
     name: Docker maintenance integration test
     runs-on: ubuntu-latest

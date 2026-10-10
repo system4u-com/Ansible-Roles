@@ -57,6 +57,12 @@ argument_specs:
         type: str
         default: config.yaml
 
+      docker_agentgateway_container_extra_volumes:
+        type: list
+        elements: str
+        default: []
+        description: Additional deployment-managed Docker volume bindings.
+
       docker_agentgateway_container_environment_default:
         type: list
         elements: dict

@@ -16,6 +16,8 @@
     docker_agentgateway_downstream_networks:
       - agentgateway-ci-mcp-net
     docker_agentgateway_container_published_ports: []
+    docker_agentgateway_container_extra_volumes:
+      - "{{ docker_data_basepath }}/test-secrets:/etc/agentgateway/secrets:ro"
     docker_agentgateway_container_labels_override:
       - key: traefik.enable
         value: "true"
@@ -31,6 +33,18 @@
 
     - name: Run agentgateway runtime test
       block:
+        - name: Create a synthetic secret directory
+          ansible.builtin.file:
+            path: "{{ docker_data_basepath }}/test-secrets"
+            state: directory
+            mode: "0700"
+
+        - name: Create a synthetic non-credential fixture
+          ansible.builtin.copy:
+            content: "synthetic-mount-fixture\n"
+            dest: "{{ docker_data_basepath }}/test-secrets/fixture"
+            mode: "0600"
+
         - name: Include docker_agentgateway role
           ansible.builtin.include_role:
             name: docker_agentgateway
@@ -89,6 +103,15 @@
               - agentgateway_container_info.container.Config.Cmd == ['-f', '/config/config.yaml']
               - agentgateway_container_info.container.State.ExitCode == 0
               - agentgateway_container_info.container.State.Status == 'running'
+
+        - name: Verify configuration and additional mounts remain read-only
+          ansible.builtin.assert:
+            that:
+              - agentgateway_container_info.container.Mounts | selectattr('Destination', 'equalto', item) | list | length == 1
+              - not (agentgateway_container_info.container.Mounts | selectattr('Destination', 'equalto', item) | first).RW
+          loop:
+            - /config
+            - /etc/agentgateway/secrets
 
         - name: Verify agentgateway network topology
           ansible.builtin.assert:
