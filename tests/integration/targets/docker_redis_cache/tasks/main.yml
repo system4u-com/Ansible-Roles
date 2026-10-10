@@ -18,7 +18,9 @@
     that:
       - redis_cache_container_info.exists
       - redis_cache_container_info.container.Config.User == docker_uid ~ ':' ~ docker_gid
-      - redis_cache_container_info.container.HostConfig.PortBindings == {}
+      # Docker may return null or an empty map when no ports are published.
+      - redis_cache_container_info.container.HostConfig.PortBindings in [none, {}]
+      - not redis_cache_container_info.container.HostConfig.PublishAllPorts
       - redis_cache_container_info.container.State.Status == 'running'
 
 - name: Inspect Redis cache network

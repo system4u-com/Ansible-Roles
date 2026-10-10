@@ -58,7 +58,9 @@
           ansible.builtin.assert:
             that:
               - agents_runtime_container_info.container.Config.User == docker_uid ~ ':' ~ docker_gid
-              - agents_runtime_container_info.container.HostConfig.PortBindings == {}
+              # Docker may return null or an empty map when no ports are published.
+              - agents_runtime_container_info.container.HostConfig.PortBindings in [none, {}]
+              - not agents_runtime_container_info.container.HostConfig.PublishAllPorts
               - agents_runtime_container_info.container.Config.Env | select('equalto', 'TEST_VALUE=test') | list | length == 1
               - agents_runtime_container_info.container.HostConfig.ReadonlyRootfs
               - agents_runtime_container_info.container.NetworkSettings.Networks | length == 2
