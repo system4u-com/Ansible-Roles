@@ -89,7 +89,7 @@ traffic. Backend containers are not attached to this network by the role.
 The role provides reusable default files for:
 
 - `middlewares.yml.j2`: security headers, compression, and a reusable
-  `security-chain`.
+  `security-chain`, plus request body, rate and in-flight limits.
 - `tls.yml.j2`: a `modern-tls` TLS option with TLS 1.2 as the minimum.
 
 These definitions are not applied automatically to every router. Attach them
@@ -109,6 +109,83 @@ The directory is mounted read-only into the Traefik container.
 
 The default `security-chain` enables HSTS preload. Use it only after confirming
 that the domain and all subdomains are permanently served over HTTPS.
+
+## Reusable request middleware
+
+The default source also defines `request-body-limit`, `rate-limit` and
+`inflight-limit`. They are available for label references but are not included
+in the existing default chain, preserving router behavior on upgrades.
+Opt into limits in host variables and attach the chain to the gateway:
+
+```yaml
+# host_vars/edge-01.yml
+docker_traefik_request_body_limit_max_bytes: 1048576
+docker_traefik_request_body_limit_memory_bytes: 131072
+docker_traefik_rate_limit_average: 600
+docker_traefik_rate_limit_period: "1m"
+docker_traefik_rate_limit_burst: 120
+docker_traefik_inflight_limit_amount: 100
+docker_traefik_security_chain_middlewares:
+  - request-body-limit
+  - rate-limit
+  - inflight-limit
+  - security-headers
+
+docker_agentgateway_container_labels_override:
+  - key: traefik.enable
+    value: "true"
+  - key: traefik.http.routers.gateway.middlewares
+    value: security-chain@file
+  # Add the gateway's hostname, entrypoint, TLS and service labels separately.
+```
+
+Defaults are a 1 MiB maximum body with 128 KiB buffered in memory, a rate of
+120 requests per minute with burst 30, and 20 simultaneous HTTP requests.
+All numeric limits must be positive; the memory threshold cannot exceed the
+body maximum. Rate periods accept a positive integer with `ms`, `s`, `m`
+or `h`. Excluding a middleware from the chain disables its use by that chain;
+zero is rejected rather than silently disabling a limit.
+
+`docker_traefik_rate_limit_source_criterion` defaults to `{}`, using the
+request's remote address. `docker_traefik_inflight_limit_source_criterion`
+defaults to `{requestHost: true}`, grouping concurrent requests by hostname.
+Both accept structured Traefik `sourceCriterion` mappings. Use only one source
+strategy at a time. Do not group on an untrusted caller-supplied identity
+header or trust arbitrary forwarded client IP headers.
+
+In-flight limits count active HTTP requests, not TCP connections. Long-lived
+streaming requests occupy a slot until they finish. These middleware do not
+configure entrypoint read/idle timeouts.
+
+`docker_traefik_security_headers` is a complete structured Traefik `headers`
+mapping. Its default preserves all prior header settings. Override the complete
+mapping when changing HSTS or other headers; Ansible replaces dictionaries
+instead of merging them by default. For example:
+
+```yaml
+docker_traefik_security_headers:
+  contentTypeNosniff: true
+  frameDeny: true
+  referrerPolicy: no-referrer
+  permissionsPolicy: camera=(), microphone=(), geolocation=()
+  stsSeconds: 31536000
+  stsIncludeSubdomains: false
+  stsPreload: false
+  customResponseHeaders:
+    Server: ""
+```
+
+`docker_traefik_security_chain_middlewares` controls order and may include
+custom provider-qualified middleware names. Keep body and rate limits ahead of
+the concurrency middleware when limiting work before backend execution.
+Custom dynamic source directories replace the role's middleware templates;
+these variables apply only when the shipped template is used.
+
+Run controller-only rendering and invalid-input checks with:
+
+```sh
+ansible-playbook -i localhost, tests/integration/docker_traefik_middlewares.yml
+```
 
 ## Security defaults
 

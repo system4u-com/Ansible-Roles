@@ -1,0 +1,36 @@
+---
+- name: Validate request body limits
+  ansible.builtin.assert:
+    that:
+      - docker_traefik_request_body_limit_max_bytes | int > 0
+      - docker_traefik_request_body_limit_memory_bytes | int > 0
+      - docker_traefik_request_body_limit_memory_bytes | int <= docker_traefik_request_body_limit_max_bytes | int
+    fail_msg: Body limits must be positive and the memory threshold cannot exceed the maximum body size.
+
+- name: Validate request rate and concurrency limits
+  ansible.builtin.assert:
+    that:
+      - docker_traefik_rate_limit_average | int > 0
+      - docker_traefik_rate_limit_burst | int > 0
+      - docker_traefik_rate_limit_period is match('^[1-9][0-9]*(ms|s|m|h)$')
+      - docker_traefik_inflight_limit_amount | int > 0
+    fail_msg: Request limits must be positive and the rate period must use ms, s, m or h.
+
+- name: Validate structured middleware settings
+  ansible.builtin.assert:
+    that:
+      - docker_traefik_security_headers is mapping
+      - docker_traefik_security_headers | length > 0
+      - docker_traefik_rate_limit_source_criterion is mapping
+      - docker_traefik_inflight_limit_source_criterion is mapping
+      - docker_traefik_security_chain_middlewares | type_debug == 'list'
+      - docker_traefik_security_chain_middlewares | length > 0
+    fail_msg: Headers and source criteria must be mappings and the chain must be a non-empty list.
+
+- name: Validate middleware chain entries
+  ansible.builtin.assert:
+    that:
+      - item is string
+      - item is match('^[A-Za-z0-9_.-]+(@[A-Za-z0-9_.-]+)?$')
+    fail_msg: Chain entries must be middleware names with an optional provider suffix.
+  loop: "{{ docker_traefik_security_chain_middlewares }}"

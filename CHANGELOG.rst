@@ -6,6 +6,10 @@ This project follows `Semantic Versioning <https://semver.org/>`_.
 0.1.0
 -----
 
+- Add configurable Traefik security headers, request body, rate and in-flight
+  middleware with opt-in chain composition; retain the existing default chain.
+- Pass merged Agentgateway labels to Docker so explicitly configured routers
+  and middleware references are applied.
 - Initial collection with the ``docker`` role.
 - Add the ``helper_merge_kv`` helper role.
 - Add the ``docker_traefik`` role with ACME, isolated networks, and dynamic

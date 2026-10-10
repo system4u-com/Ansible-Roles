@@ -1,0 +1,22 @@
+---
+- name: Reset middleware rejection result
+  ansible.builtin.set_fact:
+    test_middleware_rejected: false
+
+- name: Exercise invalid middleware configuration
+  block:
+    - name: Validate invalid middleware inputs
+      ansible.builtin.include_tasks: ../../../roles/docker_traefik/tasks/validate_middlewares.yml
+  rescue:
+    - name: Verify the expected validation rejected the input
+      ansible.builtin.assert:
+        that:
+          - ansible_failed_task.name == item.expected_task
+    - name: Record middleware rejection
+      ansible.builtin.set_fact:
+        test_middleware_rejected: true
+
+- name: Require rejection of invalid configuration
+  ansible.builtin.assert:
+    that:
+      - test_middleware_rejected

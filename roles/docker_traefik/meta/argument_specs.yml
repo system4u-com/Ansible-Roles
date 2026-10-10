@@ -3,6 +3,78 @@ argument_specs:
   main:
     short_description: Deploy Traefik with a Docker socket proxy
     options:
+      docker_traefik_security_headers:
+        type: dict
+        default:
+          contentTypeNosniff: true
+          frameDeny: true
+          referrerPolicy: strict-origin-when-cross-origin
+          permissionsPolicy: camera=(), microphone=(), geolocation=()
+          stsSeconds: 31536000
+          stsIncludeSubdomains: true
+          stsPreload: true
+          forceSTSHeader: true
+        description:
+          - Structured Traefik headers options.
+
+      docker_traefik_request_body_limit_max_bytes:
+        type: int
+        default: 1048576
+        description:
+          - Maximum request body size in bytes.
+
+      docker_traefik_request_body_limit_memory_bytes:
+        type: int
+        default: 131072
+        description:
+          - Request body bytes buffered in memory.
+
+      docker_traefik_rate_limit_average:
+        type: int
+        default: 120
+        description:
+          - Average requests allowed per period and source.
+
+      docker_traefik_rate_limit_period:
+        type: str
+        default: "1m"
+        description:
+          - Positive duration using ms, s, m or h.
+
+      docker_traefik_rate_limit_burst:
+        type: int
+        default: 30
+        description:
+          - Maximum token bucket burst.
+
+      docker_traefik_rate_limit_source_criterion:
+        type: dict
+        default: {}
+        description:
+          - Structured sourceCriterion; empty uses client remote address.
+
+      docker_traefik_inflight_limit_amount:
+        type: int
+        default: 20
+        description:
+          - Maximum concurrent HTTP requests per source.
+
+      docker_traefik_inflight_limit_source_criterion:
+        type: dict
+        default:
+          requestHost: true
+        description:
+          - Structured sourceCriterion; default groups by request host.
+
+      docker_traefik_security_chain_middlewares:
+        type: list
+        elements: str
+        default:
+          - security-headers
+          - compress
+        description:
+          - Ordered middleware names; request limits are opt-in.
+
       docker_traefik_acme_challenge_type:
         type: str
         choices:

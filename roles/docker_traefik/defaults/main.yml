@@ -49,6 +49,32 @@ docker_traefik_acme_dns_provider: ""
 docker_traefik_acme_dns_resolvers: []
 docker_traefik_acme_dns_delay_before_check: 0
 
+# Reusable security header options.
+docker_traefik_security_headers:
+  contentTypeNosniff: true
+  frameDeny: true
+  referrerPolicy: strict-origin-when-cross-origin
+  permissionsPolicy: camera=(), microphone=(), geolocation=()
+  stsSeconds: 31536000
+  stsIncludeSubdomains: true
+  stsPreload: true
+  forceSTSHeader: true
+
+# Reusable request middleware; attach explicitly to a router or chain.
+docker_traefik_request_body_limit_max_bytes: 1048576
+docker_traefik_request_body_limit_memory_bytes: 131072
+docker_traefik_rate_limit_average: 120
+docker_traefik_rate_limit_period: "1m"
+docker_traefik_rate_limit_burst: 30
+docker_traefik_rate_limit_source_criterion: {}
+docker_traefik_inflight_limit_amount: 20
+docker_traefik_inflight_limit_source_criterion:
+  requestHost: true
+# Preserve the existing chain unless the caller opts into request limits.
+docker_traefik_security_chain_middlewares:
+  - security-headers
+  - compress
+
 # Traefik dashboard.
 docker_traefik_enable_dashboard: false
 docker_traefik_dashboard_proxy_fqdn: "{{ inventory_hostname }}"

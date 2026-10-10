@@ -48,6 +48,7 @@
     container_default_behavior: "no_defaults"
     networks_cli_compatible: true
     networks: "{{ docker_agentgateway_container_networks }}"
+    labels: "{{ docker_agentgateway_container_labels }}"
     published_ports: >-
       {{ [] if docker_agentgateway_enable_traefik_frontend | bool
       else docker_agentgateway_container_published_ports }}
