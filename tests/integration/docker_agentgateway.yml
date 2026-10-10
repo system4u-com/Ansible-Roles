@@ -20,7 +20,7 @@
       - key: traefik.enable
         value: "true"
       - key: traefik.http.routers.gateway-ci.middlewares
-        value: security-chain@file
+        value: mcp-api-chain@file
 
   tasks:
     - name: Create Traefik-owned ingress network for the test
@@ -93,7 +93,7 @@
             that:
               - agentgateway_container_info.container.Config.Labels['traefik.enable'] == 'true'
               - agentgateway_container_info.container.Config.Labels['traefik.docker.network'] == docker_agentgateway_ingress_network
-              - agentgateway_container_info.container.Config.Labels['traefik.http.routers.gateway-ci.middlewares'] == 'security-chain@file'
+              - agentgateway_container_info.container.Config.Labels['traefik.http.routers.gateway-ci.middlewares'] == 'mcp-api-chain@file'
 
         - name: Verify agentgateway network isolation
           ansible.builtin.assert:

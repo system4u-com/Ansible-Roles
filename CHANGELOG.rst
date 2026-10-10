@@ -6,8 +6,9 @@ This project follows `Semantic Versioning <https://semver.org/>`_.
 0.1.0
 -----
 
-- Add an optional fixed Traefik ``strict-chain`` middleware template; keep the
-  existing ``security-chain`` unchanged and allow custom source templates.
+- Add opt-in Traefik REST, MCP and agent API middleware chains with fixed
+  rate/concurrency budgets, streaming-safe MCP/agent profiles and API headers;
+  preserve the legacy ``security-chain`` and support custom source templates.
 - Apply merged Agentgateway labels to Docker containers.
 - Initial collection with the ``docker`` role.
 - Add the ``helper_merge_kv`` helper role.
