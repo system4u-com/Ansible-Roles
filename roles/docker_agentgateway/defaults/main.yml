@@ -24,6 +24,8 @@ docker_agentgateway_container_data_basepath: >-
 docker_agentgateway_config_source_path: ""
 docker_agentgateway_config_container_path: "/config"
 docker_agentgateway_config_filename: "config.yaml"
+# Deployment-managed additional mounts; the built-in /config mount is retained.
+docker_agentgateway_container_extra_volumes: []
 
 # Agentgateway container environment.
 docker_agentgateway_container_environment_default:
