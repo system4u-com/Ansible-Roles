@@ -32,6 +32,9 @@ jobs:
       - name: Run ansible-lint
         run: ansible-lint .
 
+      - name: Check optional middleware templates
+        run: ansible-playbook -i localhost, tests/integration/docker_traefik_middlewares.yml
+
   sanity:
     name: Ansible sanity tests
     runs-on: ubuntu-latest

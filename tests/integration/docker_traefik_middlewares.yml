@@ -1,0 +1,55 @@
+---
+- name: Check optional Traefik middleware profiles without Docker
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    test_template_dir: "{{ playbook_dir }}/../../roles/docker_traefik/templates/dynamic"
+    test_basic: "{{ (lookup('ansible.builtin.template', test_template_dir ~ '/middlewares.yml.j2') | from_yaml).http.middlewares }}"
+    test_api: "{{ (lookup('ansible.builtin.template', test_template_dir ~ '/middlewares-api.yml.j2') | from_yaml).http.middlewares }}"
+    test_profiles:
+      - {name: rest, average: 60, burst: 20, inflight: 20}
+      - {name: mcp, average: 600, burst: 120, inflight: 100}
+      - {name: agent, average: 120, burst: 30, inflight: 20}
+  tasks:
+    - name: Verify legacy compatibility and bounded REST buffering
+      ansible.builtin.assert:
+        that:
+          - test_basic['security-chain'].chain.middlewares == ['security-headers', 'compress']
+          - test_basic['security-headers'].headers.contentTypeNosniff
+          - test_basic.keys() | intersect(test_api.keys()) | length == 0
+          - test_api['api-security-headers'].headers.contentTypeNosniff
+          - test_api['api-security-headers'].headers.frameDeny
+          - test_api['api-security-headers'].headers.referrerPolicy == 'no-referrer'
+          - test_api['api-security-headers'].headers.stsSeconds == 31536000
+          - not test_api['api-security-headers'].headers.stsIncludeSubdomains
+          - not test_api['api-security-headers'].headers.stsPreload
+          - test_api['api-security-headers'].headers.customResponseHeaders.Server == ''
+          - >-
+            test_api['rest-api-body-limit'].buffering ==
+            {'maxRequestBodyBytes':1048576, 'memRequestBodyBytes':131072,
+             'maxResponseBodyBytes':16777216, 'memResponseBodyBytes':131072}
+
+    - name: Verify each API profile has the intended order and budgets
+      ansible.builtin.assert:
+        that:
+          - >-
+            test_api[item.name ~ '-api-chain'].chain.middlewares ==
+            ['api-security-headers', item.name ~ '-api-rate-limit', item.name ~ '-api-inflight-limit']
+            + (['rest-api-body-limit'] if item.name == 'rest' else [])
+          - >-
+            test_api[item.name ~ '-api-chain'].chain.middlewares |
+            difference(test_api.keys() | list) | length == 0
+          - >-
+            test_api[item.name ~ '-api-rate-limit'].rateLimit ==
+            {'average':item.average, 'period':'1m', 'burst':item.burst}
+          - >-
+            test_api[item.name ~ '-api-inflight-limit'].inFlightReq ==
+            {'amount':item.inflight, 'sourceCriterion':{'requestHost':true}}
+      loop: "{{ test_profiles }}"
+
+    - name: Verify streaming chains contain only headers and admission limits
+      ansible.builtin.assert:
+        that:
+          - test_api[item].keys() | difference(['headers', 'rateLimit', 'inFlightReq']) | length == 0
+      loop: "{{ (test_api['mcp-api-chain'].chain.middlewares + test_api['agent-api-chain'].chain.middlewares) | unique }}"

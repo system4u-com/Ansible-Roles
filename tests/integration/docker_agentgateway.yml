@@ -16,6 +16,11 @@
     docker_agentgateway_downstream_networks:
       - agentgateway-ci-mcp-net
     docker_agentgateway_container_published_ports: []
+    docker_agentgateway_container_labels_override:
+      - key: traefik.enable
+        value: "true"
+      - key: traefik.http.routers.gateway-ci.middlewares
+        value: mcp-api-chain@file
 
   tasks:
     - name: Create Traefik-owned ingress network for the test
@@ -84,6 +89,13 @@
               - agentgateway_container_info.container.State.Status == 'running'
 
         - name: Verify agentgateway network topology
+          ansible.builtin.assert:
+            that:
+              - agentgateway_container_info.container.Config.Labels['traefik.enable'] == 'true'
+              - agentgateway_container_info.container.Config.Labels['traefik.docker.network'] == docker_agentgateway_ingress_network
+              - agentgateway_container_info.container.Config.Labels['traefik.http.routers.gateway-ci.middlewares'] == 'mcp-api-chain@file'
+
+        - name: Verify agentgateway network isolation
           ansible.builtin.assert:
             that:
               - agentgateway_ingress_network_info.network.Internal

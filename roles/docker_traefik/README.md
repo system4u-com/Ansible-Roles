@@ -86,29 +86,70 @@ Traefik also uses a dedicated non-internal egress network
 (`traefik-egress-net`) for Let's Encrypt, DNS provider APIs, and other outbound
 traffic. Backend containers are not attached to this network by the role.
 
-The role provides reusable default files for:
+### Select an API chain
 
-- `middlewares.yml.j2`: security headers, compression, and a reusable
-  `security-chain`.
-- `tls.yml.j2`: a `modern-tls` TLS option with TLS 1.2 as the minimum.
+Choose one chain for the endpoint's transport. These are alternatives, not
+steps to combine, and no chain is attached automatically.
 
-These definitions are not applied automatically to every router. Attach them
-explicitly to a router through Docker labels:
+| Router middleware | Intended use | Requests/minute per remote IP (burst) | Active requests per hostname | Body buffering |
+| --- | --- | --- | --- | --- |
+| `rest-api-chain@file` | Non-streaming REST and webhooks | 60 (20) | 20 | 1 MiB request, 16 MiB response |
+| `mcp-api-chain@file` | MCP Streamable HTTP, including SSE | 600 (120) | 100 | None |
+| `agent-api-chain@file` | Agent invocation API, including SSE | 120 (30) | 20 | None |
 
 ```yaml
-labels:
-  traefik.http.routers.app.middlewares: security-chain@file
-  traefik.http.routers.app.tls.options: modern-tls@file
+# host_vars/edge-01.yml: choose the chain; keep routing/TLS/service labels too.
+docker_agentgateway_container_labels_override:
+  - key: traefik.enable
+    value: "true"
+  - key: traefik.http.routers.gateway.middlewares
+    value: mcp-api-chain@file
+  - key: traefik.http.routers.gateway.tls.options
+    value: modern-tls@file
+  # Define hostname, entrypoint, TLS and backend service labels separately.
 ```
 
-This avoids changing backend behavior implicitly. If a host-specific source
-path is configured, it replaces these defaults, so copy and adapt the files
-that should remain enabled.
+All API chains apply the same headers first: nosniff, frame denial,
+`no-referrer`, restricted browser permissions, one-year HSTS without subdomain
+inclusion/preload, and removal of `Server`. Next come rate and in-flight limits;
+REST buffering runs last so rejected requests do not consume its buffers.
+REST buffers use 128 KiB of memory per direction before spilling to temporary
+disk. Size temporary storage for the configured concurrency and traffic.
 
-The directory is mounted read-only into the Traefik container.
+MCP and agent chains intentionally omit buffering, compression and retries.
+Traefik's [buffering middleware](https://doc.traefik.io/traefik/reference/routing-configuration/http/middlewares/buffering/)
+buffers responses too and is unsuitable for SSE. Enforce bounded request sizes
+in the gateway/application for these streaming profiles; they do not supply an
+ingress body-size limit. REST endpoints that stream must also use a streaming
+profile, not the REST chain.
 
-The default `security-chain` enables HSTS preload. Use it only after confirming
-that the domain and all subdomains are permanently served over HTTPS.
+The fixed numbers are starting operational budgets, not protocol requirements
+or universal best practices. Rate limits use the remote IP (not an untrusted
+forwarded header); behind another proxy, assess the trusted-proxy configuration
+before rollout. In-flight limits are per hostname, not per user or TCP
+connection; long-lived streams occupy slots until they finish. Limits are
+local to each Traefik instance, not distributed quotas. Chains do not configure
+entrypoint/backend timeouts, authentication, authorization, CORS or MCP Origin
+validation. Keep those controls in the gateway/application as appropriate and
+verify SSE first-frame delivery, disconnect handling and timeouts in staging.
+
+For different limits, use `docker_traefik_dynamic_config_source_path` with your
+own templates. The custom directory replaces all shipped files, so include
+required middleware and TLS definitions too. No new role parameters are needed.
+
+### Shipped files and legacy compatibility
+
+All files are loaded together; their listing is not middleware execution order:
+
+- `middlewares-api.yml.j2` defines the three API chains above and their helpers.
+- `middlewares.yml.j2` preserves the legacy `security-chain@file` with headers
+  and compression. It has no rate/concurrency/body limits and enables HSTS
+  preload and subdomains; use only after reviewing that domain-wide commitment.
+- `tls.yml.j2` defines `modern-tls@file` (minimum TLS 1.2). TLS options are
+  selected independently with the router's `tls.options` label, not as a chain.
+
+The dynamic directory is mounted read-only into Traefik. Existing routers keep
+their behavior unless operators explicitly select a new API chain.
 
 ## Security defaults
 
