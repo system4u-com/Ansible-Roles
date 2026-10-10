@@ -55,6 +55,8 @@ docker_traefik_dynamic_config_watch: true
 docker_traefik_dynamic_config_cleanup: true
 ```
 
+Source paths are controller-local and checked without privilege escalation;
+destination operations remain on the managed host under its normal become policy.
 An empty source path uses the role defaults. To replace them for one host, set
 the path in that host's variables:
 

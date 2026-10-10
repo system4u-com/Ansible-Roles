@@ -6,6 +6,8 @@ This project follows `Semantic Versioning <https://semver.org/>`_.
 0.1.0
 -----
 
+- Check Traefik and Agentgateway template sources on the controller without
+  privilege escalation, while keeping destination operations on managed hosts.
 - Accept null or empty Docker port bindings in internal-container integration
   tests while independently rejecting publish-all-ports configuration.
 - Add opt-in Traefik REST, MCP and agent API middleware chains with fixed

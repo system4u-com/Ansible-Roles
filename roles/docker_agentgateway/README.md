@@ -108,6 +108,8 @@ docker_agentgateway_config_source_path: >-
   {{ playbook_dir }}/templates/{{ inventory_hostname }}/agentgateway-a/config.yaml.j2
 ```
 
+Source paths are controller-local and checked without privilege escalation.
+Destination files are created on the managed host under its normal become policy.
 The role renders the source into the read-only `/config` mount. The current
 stateless configuration does not enable UI or database features and therefore
 does not need container-side writes.
