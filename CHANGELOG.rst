@@ -6,6 +6,7 @@ This project follows `Semantic Versioning <https://semver.org/>`_.
 0.1.0
 -----
 
+- Hide helper_merge_kv values in default and override entry validation output.
 - Discover Traefik YAML and Jinja dynamic configuration files with explicit
   glob patterns and strip template suffixes reliably.
 - Pass Traefik's bind-service capability through the supported Docker module

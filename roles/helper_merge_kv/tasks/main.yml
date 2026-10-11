@@ -41,6 +41,7 @@
     - always
 
 - name: Validate default KV entries
+  no_log: "{{ helper_merge_kv_no_log | bool }}"
   ansible.builtin.assert:
     that:
       - item is mapping
@@ -54,6 +55,7 @@
     - always
 
 - name: Validate override KV entries
+  no_log: "{{ helper_merge_kv_no_log | bool }}"
   ansible.builtin.assert:
     that:
       - item is mapping
