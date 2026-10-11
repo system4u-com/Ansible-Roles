@@ -129,11 +129,11 @@
               - agentgateway_egress_network_info.exists
               - not agentgateway_egress_network_info.network.Internal
               - agentgateway_downstream_network_info.network.Internal
-              - agentgateway_ingress_network in
+              - docker_agentgateway_ingress_network in
                 agentgateway_container_info.container.NetworkSettings.Networks
-              - agentgateway_egress_network in
+              - docker_agentgateway_egress_network in
                 agentgateway_container_info.container.NetworkSettings.Networks
-              - "agentgateway-ci-mcp-net in agentgateway_container_info.container.NetworkSettings.Networks"
+              - "'agentgateway-ci-mcp-net' in agentgateway_container_info.container.NetworkSettings.Networks"
 
         - name: Verify agentgateway configuration
           ansible.builtin.slurp:

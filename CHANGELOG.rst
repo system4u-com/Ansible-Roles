@@ -8,6 +8,7 @@ This project follows `Semantic Versioning <https://semver.org/>`_.
 
 - Fix a folded YAML whitespace in the Agentgateway configuration destination
   that prevented startup; cover path/command alignment and capture CI stderr.
+- Fix unprefixed network variables in the Agentgateway integration assertions.
 - Allow additional deployment-managed Agentgateway volume bindings while
   preserving the built-in read-only configuration mount.
 - Check Traefik and Agentgateway template sources on the controller without
