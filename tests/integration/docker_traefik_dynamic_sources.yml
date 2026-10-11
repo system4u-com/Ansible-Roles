@@ -1,0 +1,44 @@
+---
+- name: Check Traefik dynamic template deployment without Docker
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    - name: Allocate an isolated Traefik data directory
+      ansible.builtin.tempfile:
+        state: directory
+        path: /tmp
+        prefix: system4u-traefik-dynamic-
+      register: test_traefik_data
+
+    - name: Render bundled Traefik dynamic configuration
+      block:
+        - name: Run the real file-configuration tasks from the role  # noqa var-naming
+          ansible.builtin.include_role:
+            name: docker_traefik
+            tasks_from: configure_files.yml
+          vars:
+            docker_data_basepath: "{{ test_traefik_data.path }}"
+            docker_user: "{{ lookup('ansible.builtin.pipe', 'id -un') }}"
+            docker_group: "{{ lookup('ansible.builtin.pipe', 'id -gn') }}"
+            docker_uid: "{{ lookup('ansible.builtin.pipe', 'id -u') | int }}"
+            docker_gid: "{{ lookup('ansible.builtin.pipe', 'id -g') | int }}"
+            system_timezone: UTC
+            ssl_acme_email: test@example.invalid
+
+        - name: Find rendered dynamic files
+          ansible.builtin.find:
+            paths: "{{ test_traefik_data.path }}/traefik/dynamic"
+            file_type: file
+            patterns: ["*.yml", "*.yaml"]
+          register: test_rendered_dynamic_files
+
+        - name: Verify all three bundled dynamic configurations were deployed
+          ansible.builtin.assert:
+            that:
+              - test_rendered_dynamic_files.files | map(attribute='path') | map('basename') | sort == ['middlewares-api.yml', 'middlewares.yml', 'tls.yml']
+      always:
+        - name: Remove isolated test data
+          ansible.builtin.file:
+            path: "{{ test_traefik_data.path }}"
+            state: absent

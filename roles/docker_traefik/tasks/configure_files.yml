@@ -59,10 +59,10 @@
 - name: Find dynamic configuration templates
   ansible.builtin.set_fact:
     docker_traefik_dynamic_config_source_files: >-
-      {{ query(
-        'ansible.builtin.fileglob',
-        docker_traefik_dynamic_config_effective_source_path ~ '/*'
-      ) | select('match', '.*\\.(yml|yaml)(\\.j2)?$') | list }}
+      {{ query('ansible.builtin.fileglob', docker_traefik_dynamic_config_effective_source_path ~ '/*.yml')
+      + query('ansible.builtin.fileglob', docker_traefik_dynamic_config_effective_source_path ~ '/*.yaml')
+      + query('ansible.builtin.fileglob', docker_traefik_dynamic_config_effective_source_path ~ '/*.yml.j2')
+      + query('ansible.builtin.fileglob', docker_traefik_dynamic_config_effective_source_path ~ '/*.yaml.j2') }}
 
 - name: Find deployed dynamic configuration files
   ansible.builtin.find:
@@ -85,7 +85,9 @@
     - item.path | basename not in (
         docker_traefik_dynamic_config_source_files
         | map('basename')
-        | map('regex_replace', '\\.j2$', '')
+        | map('splitext')
+        | map('first')
+        | map('basename')
         | list
         + ['README.md']
       )
@@ -95,7 +97,7 @@
     src: "{{ item }}"
     dest: >-
       {{ docker_traefik_dynamic_config_basepath }}/{{ item | basename
-      | regex_replace('\\.j2$', '') }}
+      | splitext | first }}
     owner: "{{ docker_user }}"
     group: "{{ docker_group }}"
     mode: "0644"
