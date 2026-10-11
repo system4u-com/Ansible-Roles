@@ -6,6 +6,8 @@ This project follows `Semantic Versioning <https://semver.org/>`_.
 0.1.0
 -----
 
+- Pass Traefik's bind-service capability through the supported Docker module
+  option and keep ``no_log`` at Ansible task level.
 - Fix a folded YAML whitespace in the Agentgateway configuration destination
   that prevented startup; cover path/command alignment and capture CI stderr.
 - Fix network references and explicitly declare the configuration filename in
