@@ -6,6 +6,8 @@ This project follows `Semantic Versioning <https://semver.org/>`_.
 0.1.0
 -----
 
+- Discover Traefik YAML and Jinja dynamic configuration files with explicit
+  glob patterns and strip template suffixes reliably.
 - Pass Traefik's bind-service capability through the supported Docker module
   option and keep ``no_log`` at Ansible task level.
 - Fix a folded YAML whitespace in the Agentgateway configuration destination
