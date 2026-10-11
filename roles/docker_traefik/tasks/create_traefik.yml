@@ -44,6 +44,7 @@
     helper_merge_kv_output: docker_traefik_container_environment
 
 - name: Create Traefik container
+  no_log: true
   community.docker.docker_container:
     docker_host: unix:///var/run/docker.sock
     detach: true
@@ -57,13 +58,12 @@
     published_ports: "{{ docker_traefik_container_port_mapping }}"
     labels: "{{ docker_traefik_container_labels }}"
     env: "{{ docker_traefik_container_environment }}"
-    no_log: true
     read_only: true
     security_opts:
       - no-new-privileges:true
     cap_drop:
       - ALL
-    cap_add:
+    capabilities:
       - NET_BIND_SERVICE
     tmpfs:
       - /tmp

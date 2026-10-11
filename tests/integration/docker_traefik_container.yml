@@ -1,0 +1,19 @@
+---
+- name: Check Traefik Docker task uses supported arguments without Docker
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    test_role_path: "{{ playbook_dir }}/../../roles/docker_traefik"
+  tasks:
+    - name: Verify capability and secret-log options are task-level
+      vars:
+        test_tasks: "{{ lookup('ansible.builtin.file', test_role_path ~ '/tasks/create_traefik.yml') | from_yaml }}"
+        test_task: "{{ test_tasks | selectattr('name', 'equalto', 'Create Traefik container') | first }}"
+        test_container: "{{ test_task['community.docker.docker_container'] }}"
+      ansible.builtin.assert:
+        that:
+          - test_container.capabilities == ['NET_BIND_SERVICE']
+          - "'cap_add' not in test_container"
+          - "'no_log' not in test_container"
+          - test_task.no_log | bool
