@@ -45,6 +45,8 @@ jobs:
         run: ansible-playbook -i localhost, tests/integration/docker_traefik_container.yml
 
       - name: Check Traefik dynamic template discovery
+        env:
+          ANSIBLE_ROLES_PATH: ${{ github.workspace }}/roles
         run: ansible-playbook -i localhost, tests/integration/docker_traefik_dynamic_sources.yml
 
   sanity:
