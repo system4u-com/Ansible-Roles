@@ -11,6 +11,7 @@
     docker_data_basepath: /tmp/system4u-agentgateway-ci
     system_timezone: UTC
     docker_agentgateway_container_name: agentgateway-ci
+    docker_agentgateway_config_filename: config.yaml
     docker_agentgateway_ingress_network: agentgateway-ci-ingress-net
     docker_agentgateway_egress_network: agentgateway-ci-egress-net
     docker_agentgateway_downstream_networks:
