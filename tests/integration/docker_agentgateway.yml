@@ -11,6 +11,7 @@
     docker_data_basepath: /tmp/system4u-agentgateway-ci
     system_timezone: UTC
     docker_agentgateway_container_name: agentgateway-ci
+    docker_agentgateway_config_filename: config.yaml
     docker_agentgateway_ingress_network: agentgateway-ci-ingress-net
     docker_agentgateway_egress_network: agentgateway-ci-egress-net
     docker_agentgateway_downstream_networks:
@@ -58,7 +59,9 @@
 
         - name: Show agentgateway startup logs
           ansible.builtin.debug:
-            var: agentgateway_startup_logs.stdout
+            msg:
+              stdout: "{{ agentgateway_startup_logs.stdout }}"
+              stderr: "{{ agentgateway_startup_logs.stderr }}"
 
         - name: Wait for agentgateway container to be running
           community.docker.docker_container_info:
@@ -127,17 +130,15 @@
               - agentgateway_egress_network_info.exists
               - not agentgateway_egress_network_info.network.Internal
               - agentgateway_downstream_network_info.network.Internal
-              - agentgateway_ingress_network in
+              - docker_agentgateway_ingress_network in
                 agentgateway_container_info.container.NetworkSettings.Networks
-              - agentgateway_egress_network in
+              - docker_agentgateway_egress_network in
                 agentgateway_container_info.container.NetworkSettings.Networks
-              - "agentgateway-ci-mcp-net in agentgateway_container_info.container.NetworkSettings.Networks"
+              - "'agentgateway-ci-mcp-net' in agentgateway_container_info.container.NetworkSettings.Networks"
 
         - name: Verify agentgateway configuration
           ansible.builtin.slurp:
-            src: >-
-              {{ docker_data_basepath }}/{{ docker_agentgateway_container_name }}/
-              {{ docker_agentgateway_config_filename }}
+            src: "{{ docker_data_basepath }}/{{ docker_agentgateway_container_name }}/{{ docker_agentgateway_config_filename }}"
           register: agentgateway_config
 
         - name: Verify agentgateway default configuration
@@ -153,6 +154,19 @@
               - agentgateway_container_info.container.State.Status == 'running'
               - "'error' not in (agentgateway_logs.stderr | lower)"
       always:
+        - name: Capture synthetic gateway logs before cleanup
+          ansible.builtin.command:
+            cmd: docker logs {{ docker_agentgateway_container_name }}
+          register: agentgateway_cleanup_logs
+          changed_when: false
+          failed_when: false
+
+        - name: Show synthetic gateway logs including startup errors
+          ansible.builtin.debug:
+            msg:
+              stdout: "{{ agentgateway_cleanup_logs.stdout }}"
+              stderr: "{{ agentgateway_cleanup_logs.stderr }}"
+
         - name: Remove agentgateway test container
           community.docker.docker_container:
             name: "{{ docker_agentgateway_container_name }}"
