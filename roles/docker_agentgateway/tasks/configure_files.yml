@@ -46,9 +46,7 @@
 - name: Deploy agentgateway configuration
   ansible.builtin.template:
     src: "{{ docker_agentgateway_effective_config_source_path }}"
-    dest: >-
-      {{ docker_agentgateway_container_data_basepath }}/
-      {{ docker_agentgateway_config_filename }}
+    dest: "{{ docker_agentgateway_container_data_basepath }}/{{ docker_agentgateway_config_filename }}"
     owner: "{{ docker_user }}"
     group: "{{ docker_group }}"
     mode: "0640"

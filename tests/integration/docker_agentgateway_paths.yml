@@ -1,0 +1,39 @@
+---
+- name: Check rendered Agentgateway configuration paths without Docker
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    docker_user: synthetic
+    docker_group: synthetic
+    docker_uid: 10001
+    docker_gid: 10001
+    docker_data_basepath: /tmp/synthetic-gateway
+    system_timezone: UTC
+    docker_agentgateway_effective_config_source_path: /tmp/synthetic-source.yaml
+    docker_agentgateway_container_name: synthetic-gateway
+    docker_agentgateway_container_labels: {}
+    docker_agentgateway_container_environment: {}
+    docker_agentgateway_container_networks: []
+    test_role_path: "{{ playbook_dir }}/../../roles/docker_agentgateway"
+    item: synthetic-net
+  vars_files:
+    - ../../roles/docker_agentgateway/defaults/main.yml
+  tasks:
+    - name: Verify rendered destination and container command point to the same filename
+      vars:
+        docker_agentgateway_config_source_path: /tmp/synthetic-source.yaml
+        test_config_tasks: "{{ lookup('ansible.builtin.template', test_role_path ~ '/tasks/configure_files.yml') | from_yaml }}"
+        test_config: >-
+          {{ (test_config_tasks | selectattr('name', 'equalto', 'Deploy agentgateway configuration')
+             | first)['ansible.builtin.template'] }}
+        test_container_tasks: "{{ lookup('ansible.builtin.template', test_role_path ~ '/tasks/create_agentgateway.yml') | from_yaml }}"
+        test_container: >-
+          {{ (test_container_tasks | selectattr('name', 'equalto', 'Create agentgateway container')
+             | first)['community.docker.docker_container'] }}
+      ansible.builtin.assert:
+        that:
+          - test_config.dest == docker_agentgateway_container_data_basepath ~ '/' ~ docker_agentgateway_config_filename
+          - test_config.dest | basename == docker_agentgateway_config_filename
+          - test_container.command == ['-f', docker_agentgateway_config_container_path ~ '/' ~ docker_agentgateway_config_filename]
+          - test_container.volumes | from_yaml == [docker_agentgateway_container_data_basepath ~ ':' ~ docker_agentgateway_config_container_path ~ ':ro']
