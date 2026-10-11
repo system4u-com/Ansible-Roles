@@ -1,0 +1,21 @@
+---
+- name: Check helper_merge_kv validation tasks hide values
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    helper_merge_kv_tasks: >-
+      {{ lookup('ansible.builtin.file', playbook_dir ~ '/../../roles/helper_merge_kv/tasks/main.yml')
+         | ansible.builtin.from_yaml }}
+    helper_merge_kv_default_validation: >-
+      {{ helper_merge_kv_tasks | selectattr('name', 'equalto', 'Validate default KV entries') | list }}
+    helper_merge_kv_override_validation: >-
+      {{ helper_merge_kv_tasks | selectattr('name', 'equalto', 'Validate override KV entries') | list }}
+  tasks:
+    - name: Verify both validation loops suppress task output
+      ansible.builtin.assert:
+        that:
+          - helper_merge_kv_default_validation | length == 1
+          - helper_merge_kv_default_validation[0].no_log is defined
+          - helper_merge_kv_override_validation | length == 1
+          - helper_merge_kv_override_validation[0].no_log is defined
