@@ -49,3 +49,4 @@ This project follows `Semantic Versioning <https://semver.org/>`_.
   reboot handling.
 - Add Ubuntu host bootstrap with Python detection, locale, NTP, troubleshooting
   tools, and emergency disk reserve support.
+- Declare Ubuntu 26.04 LTS (Resolute) support for the ``system_base`` role.

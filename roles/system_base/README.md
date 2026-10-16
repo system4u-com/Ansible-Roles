@@ -1,6 +1,8 @@
 # system_base
 
-Prepares a supported Ubuntu host for reusable infrastructure roles.
+Prepares a supported Ubuntu host for reusable infrastructure roles. The role
+declares support for Ubuntu 22.04 LTS (Jammy), 24.04 LTS (Noble), and 26.04 LTS
+(Resolute).
 
 ## Scope
 
